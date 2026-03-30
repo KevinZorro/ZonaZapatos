@@ -10,10 +10,10 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
-    # Cloudinary
-    cloudinary_cloud_name: str
-    cloudinary_api_key: str
-    cloudinary_api_secret: str
+    # Cloudinary (opcional hasta configurar subida de archivos)
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
 
     # Email
     smtp_host: str = "smtp.gmail.com"

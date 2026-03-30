@@ -28,10 +28,20 @@ class ProductoOut(BaseModel):
     color: str | None = None
     stock: int
     empresa_id: int
+    empresa_nombre: str | None = None
+    empresa_whatsapp: str | None = None
     categorias: list[CategoriaOut] = []
     media: list[MediaArchivoOut] = []
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_orm_with_empresa(cls, obj):
+        data = cls.model_validate(obj)
+        if obj.empresa:
+            data.empresa_nombre = obj.empresa.nombre
+            data.empresa_whatsapp = obj.empresa.whatsapp
+        return data
 
 
 class ProductoCreate(BaseModel):
