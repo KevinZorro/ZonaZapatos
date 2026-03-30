@@ -7,9 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
+from app.core.database import Base, engine
 
 # ── Import routers ────────────────────────────────────────────────────────────
 from app.auth.router import router as auth_router
+from app.usuarios.router import router as usuarios_router
 from app.productos.router import router as productos_router
 from app.pedidos.router import router as pedidos_router
 from app.encuestas.router import router as encuestas_router
@@ -57,10 +59,17 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
+app.include_router(usuarios_router)
 app.include_router(productos_router)
 app.include_router(pedidos_router)
 app.include_router(encuestas_router)
 app.include_router(dashboard_router)
+
+
+# ── Crear tablas al arrancar (desarrollo) ────────────────────────────────────
+@app.on_event("startup")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

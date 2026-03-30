@@ -22,11 +22,20 @@ def send_email(*, to: str, subject: str, html_body: str) -> None:
 
 def send_confirmation_email(to: str, token: str) -> None:
     """Send the account-confirmation email with the verification link."""
-    link = f"{settings.frontend_url}/confirmar/{token}"
+    # Si no hay SMTP configurado, imprime el link en consola para desarrollo
+    if not settings.smtp_user or not settings.smtp_password:
+        link = f"{settings.frontend_url}/auth/confirmar/{token}"
+        print(f"\n[DEV] Confirma la cuenta de {to} entrando a:\n  {link}\n")
+        return
+
+    link = f"{settings.frontend_url}/auth/confirmar/{token}"
     html = f"""
     <h2>¡Bienvenido a Zapatos Artesanales Cúcuta!</h2>
     <p>Haz clic en el siguiente enlace para confirmar tu cuenta:</p>
     <a href="{link}">{link}</a>
     <p>Este enlace expira en 24 horas.</p>
     """
-    send_email(to=to, subject="Confirma tu cuenta — Zapatos", html_body=html)
+    try:
+        send_email(to=to, subject="Confirma tu cuenta — Zapatos", html_body=html)
+    except Exception as e:
+        print(f"[WARN] No se pudo enviar email a {to}: {e}")

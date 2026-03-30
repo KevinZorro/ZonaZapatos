@@ -36,6 +36,7 @@ class Usuario(Base):
         nullable=False,
     )
     telefono = Column(String(20), nullable=True)
+    foto_url = Column(String(500), nullable=True)
 
     # Polymorphic children
     empresa = relationship("Empresa", back_populates="usuario", uselist=False)
