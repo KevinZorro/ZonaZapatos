@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user, require_rol
 from app.productos.models import Producto, EstadoProductoEnum, Categoria
@@ -29,6 +30,17 @@ def _get_producto_empresa(producto_id: int, empresa_id: int, db: Session) -> Pro
     return producto
 
 
+def _serialize_producto(producto: Producto) -> ProductoOut:
+    data = ProductoOut.from_orm_with_empresa(producto)
+    modelo_3d = next((media for media in producto.media if media.tipo == "modelo_3d"), None)
+    data.modelo_3d_url = (
+        modelo_3d.cloudinary_url
+        if modelo_3d
+        else settings.demo_model_3d_url
+    )
+    return data
+
+
 # ── Public catalog ────────────────────────────────────────────────────────────
 @router.get("/productos", response_model=ProductoListResponse)
 def list_productos(
@@ -52,16 +64,19 @@ def list_productos(
         total=total,
         page=page,
         page_size=page_size,
-        items=[ProductoOut.from_orm_with_empresa(p) for p in items],
+        items=[_serialize_producto(p) for p in items],
     )
 
 
 @router.get("/productos/{producto_id}", response_model=ProductoOut)
-def get_producto(producto_id: int, db: Session = Depends(get_db)):
+def get_producto(
+    producto_id: int,
+    db: Session = Depends(get_db),
+):
     producto = db.query(Producto).filter(Producto.id == producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    return ProductoOut.from_orm_with_empresa(producto)
+    return _serialize_producto(producto)
 
 
 # ── Empresa — lista propia ────────────────────────────────────────────────────
@@ -93,7 +108,7 @@ def list_mis_productos(
         total=total,
         page=page,
         page_size=page_size,
-        items=[ProductoOut.from_orm_with_empresa(p) for p in items],
+        items=[_serialize_producto(p) for p in items],
     )
 
 
@@ -127,7 +142,7 @@ def create_producto(
     db.add(producto)
     db.commit()
     db.refresh(producto)
-    return ProductoOut.from_orm_with_empresa(producto)
+    return _serialize_producto(producto)
 
 
 # ── Empresa — editar ──────────────────────────────────────────────────────────
@@ -168,7 +183,7 @@ def update_producto(
 
     db.commit()
     db.refresh(producto)
-    return ProductoOut.from_orm_with_empresa(producto)
+    return _serialize_producto(producto)
 
 
 # ── Empresa — eliminar ────────────────────────────────────────────────────────

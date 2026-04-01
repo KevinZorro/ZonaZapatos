@@ -30,6 +30,7 @@ class ProductoOut(BaseModel):
     empresa_id: int
     empresa_nombre: str | None = None
     empresa_whatsapp: str | None = None
+    modelo_3d_url: str | None = None
     categorias: list[CategoriaOut] = []
     media: list[MediaArchivoOut] = []
 
