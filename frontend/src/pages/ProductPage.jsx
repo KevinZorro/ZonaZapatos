@@ -41,6 +41,7 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isMobile, setIsMobile] = useState(false)
   const [activeImg, setActiveImg] = useState(0)
   const [selectedTalla, setSelectedTalla] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
@@ -65,6 +66,16 @@ export default function ProductPage() {
     fetchProduct()
   }, [id])
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)')
+    const syncViewport = (event) => setIsMobile(event.matches)
+
+    setIsMobile(mediaQuery.matches)
+    mediaQuery.addEventListener('change', syncViewport)
+
+    return () => mediaQuery.removeEventListener('change', syncViewport)
+  }, [])
+
   if (loading) return (
     <div className="pp-loading">
       <div className="pp-loading__spinner" />
@@ -84,7 +95,8 @@ export default function ProductPage() {
 
   const estado = ESTADOS[product.estado] || { label: product.estado, icon: '📦', color: '#6B7280', bg: '#F9FAFB' }
   const imagenes = product.media?.filter(m => m.tipo === 'imagen') || []
-  const modelo3D  = product.media?.find(m => m.tipo === 'modelo_3d')
+  const modelo3D = product.media?.find(m => m.tipo === 'modelo_3d')
+  const modelSrc = modelo3D?.cloudinary_url || product.modelo_3d_url
   const tallas    = parseTallas(product.talla)
   const colores   = parseColores(product.color)
   const agotado   = product.estado === 'agotado'
@@ -151,7 +163,7 @@ export default function ProductPage() {
           )}
 
           {/* Botón AR */}
-          {modelo3D && (
+          {modelSrc && (
             <motion.button
               className="pp-ar-btn"
               onClick={() => setShowAR(!showAR)}
@@ -163,14 +175,14 @@ export default function ProductPage() {
 
           {/* AR Viewer */}
           <AnimatePresence>
-            {showAR && modelo3D && (
+            {showAR && modelSrc && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <ARViewer modelSrc={modelo3D.cloudinary_url} title={product.nombre} />
+                <ARViewer modelSrc={modelSrc} title={product.nombre} isMobile={isMobile} />
               </motion.div>
             )}
           </AnimatePresence>

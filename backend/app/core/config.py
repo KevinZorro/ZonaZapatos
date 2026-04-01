@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # App
     frontend_url: str = "http://localhost:5173"
     environment: str = "development"
+    demo_model_3d_url: str = "https://raw.githubusercontent.com/KevinZorro/zapatos-assets/main/models/NeilArmstrong.glb"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

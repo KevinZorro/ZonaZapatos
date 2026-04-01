@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -9,9 +10,16 @@ from fastapi.security import OAuth2PasswordBearer
 from app.core.config import settings
 
 # ── Password hashing ────────────────────────────────────────────────────────
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256", "bcrypt"],
+    deprecated="auto",
+)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+
+def _bcrypt_compatible_secret(plain: str) -> bytes:
+    return plain.encode("utf-8")[:72]
 
 
 def hash_password(plain: str) -> str:
@@ -19,6 +27,8 @@ def hash_password(plain: str) -> str:
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    if hashed.startswith("$2"):
+        return bcrypt.checkpw(_bcrypt_compatible_secret(plain), hashed.encode("utf-8"))
     return pwd_context.verify(plain, hashed)
 
 
