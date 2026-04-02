@@ -40,7 +40,10 @@ def _serialize_producto(producto: Producto) -> ProductoOut:
     )
     return data
 
-
+@router.get("/categorias")
+def list_categorias(db: Session = Depends(get_db)):
+    return db.query(Categoria).all()
+    
 # ── Public catalog ────────────────────────────────────────────────────────────
 @router.get("/productos", response_model=ProductoListResponse)
 def list_productos(
@@ -48,6 +51,11 @@ def list_productos(
     page_size: int = Query(20, ge=1, le=100),
     q: str = Query(None),
     estado: str = Query(None),
+    empresa_id: int = Query(None),
+    categoria_id: int = Query(None),
+    precio_min: float = Query(None),
+    precio_max: float = Query(None),
+    talla: str = Query(None),
     db: Session = Depends(get_db),
 ):
     query = db.query(Producto)
@@ -58,6 +66,17 @@ def list_productos(
             query = query.filter(Producto.estado == EstadoProductoEnum(estado))
         except ValueError:
             pass
+    if empresa_id:
+        query = query.filter(Producto.empresa_id == empresa_id)
+    if categoria_id:
+        query = query.filter(Producto.categorias.any(Categoria.id == categoria_id))
+    if precio_min is not None:
+        query = query.filter(Producto.precio >= precio_min)
+    if precio_max is not None:
+        query = query.filter(Producto.precio <= precio_max)
+    if talla:
+        query = query.filter(Producto.talla.ilike(f"%{talla}%"))
+
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
     return ProductoListResponse(
