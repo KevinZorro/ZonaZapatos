@@ -1,11 +1,14 @@
 """Productos router."""
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.cloudinary_client import delete_file, is_cloudinary_configured, upload_file
 from app.core.database import get_db
 from app.core.security import get_current_user, require_rol
-from app.productos.models import Producto, EstadoProductoEnum, Categoria
+from app.productos.models import Categoria, EstadoProductoEnum, MediaArchivo, Producto, TipoMediaEnum
 from app.productos.schemas import ProductoCreate, ProductoListResponse, ProductoOut, ProductoUpdate
 from app.usuarios.models import Empresa
 
@@ -39,6 +42,34 @@ def _serialize_producto(producto: Producto) -> ProductoOut:
         else settings.demo_model_3d_url
     )
     return data
+
+
+def _ensure_cloudinary() -> None:
+    if not is_cloudinary_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Cloudinary no esta configurado para subir archivos de producto",
+        )
+
+
+def _get_media_kind(file: UploadFile) -> tuple[TipoMediaEnum, str | None]:
+    extension = Path(file.filename or "").suffix.lower()
+    content_type = file.content_type or ""
+
+    if content_type.startswith("image/"):
+        return TipoMediaEnum.imagen, extension.lstrip(".") or None
+
+    if extension in {".glb", ".gltf"} or content_type in {
+        "model/gltf-binary",
+        "model/gltf+json",
+        "application/octet-stream",
+    }:
+        return TipoMediaEnum.modelo_3d, extension.lstrip(".") or None
+
+    raise HTTPException(
+        status_code=400,
+        detail=f"Archivo no soportado: {file.filename or 'sin_nombre'}",
+    )
 
 @router.get("/categorias")
 def list_categorias(db: Session = Depends(get_db)):
@@ -164,6 +195,41 @@ def create_producto(
     return _serialize_producto(producto)
 
 
+@router.post(
+    "/empresa/productos/{producto_id}/media",
+    response_model=ProductoOut,
+)
+def upload_producto_media(
+    producto_id: int,
+    files: list[UploadFile] = File(...),
+    payload: dict = Depends(require_rol("empresa")),
+    db: Session = Depends(get_db),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="Debes seleccionar al menos un archivo")
+
+    _ensure_cloudinary()
+
+    empresa = _get_empresa(int(payload["sub"]), db)
+    producto = _get_producto_empresa(producto_id, empresa.id, db)
+
+    for file in files:
+        tipo, formato = _get_media_kind(file)
+        result = upload_file(file.file, folder=f"productos/{empresa.id}/{producto.id}")
+        producto.media.append(
+            MediaArchivo(
+                cloudinary_url=result["cloudinary_url"],
+                cloudinary_public_id=result["cloudinary_public_id"],
+                tipo=tipo,
+                formato=formato,
+            )
+        )
+
+    db.commit()
+    db.refresh(producto)
+    return _serialize_producto(producto)
+
+
 # ── Empresa — editar ──────────────────────────────────────────────────────────
 @router.put(
     "/empresa/productos/{producto_id}",
@@ -205,6 +271,35 @@ def update_producto(
     return _serialize_producto(producto)
 
 
+@router.delete(
+    "/empresa/productos/{producto_id}/media/{media_id}",
+    response_model=ProductoOut,
+)
+def delete_producto_media(
+    producto_id: int,
+    media_id: int,
+    payload: dict = Depends(require_rol("empresa")),
+    db: Session = Depends(get_db),
+):
+    empresa = _get_empresa(int(payload["sub"]), db)
+    producto = _get_producto_empresa(producto_id, empresa.id, db)
+    media = next((item for item in producto.media if item.id == media_id), None)
+
+    if not media:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+
+    if media.cloudinary_public_id:
+        try:
+            delete_file(media.cloudinary_public_id)
+        except Exception:
+            pass
+
+    db.delete(media)
+    db.commit()
+    db.refresh(producto)
+    return _serialize_producto(producto)
+
+
 # ── Empresa — eliminar ────────────────────────────────────────────────────────
 @router.delete(
     "/empresa/productos/{producto_id}",
@@ -217,5 +312,13 @@ def delete_producto(
 ):
     empresa = _get_empresa(int(payload["sub"]), db)
     producto = _get_producto_empresa(producto_id, empresa.id, db)
+
+    for media in producto.media:
+        if media.cloudinary_public_id:
+            try:
+                delete_file(media.cloudinary_public_id)
+            except Exception:
+                pass
+
     db.delete(producto)
     db.commit()
