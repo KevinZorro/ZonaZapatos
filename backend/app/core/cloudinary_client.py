@@ -33,3 +33,11 @@ def upload_file(file, folder: str) -> dict:
 def delete_file(public_id: str) -> None:
     """Delete an asset from Cloudinary by its public_id."""
     cloudinary.uploader.destroy(public_id, resource_type="auto")
+
+
+def is_cloudinary_configured() -> bool:
+    return bool(
+        settings.cloudinary_cloud_name
+        and settings.cloudinary_api_key
+        and settings.cloudinary_api_secret
+    )
