@@ -22,6 +22,14 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+function isValidNombre(nombre) {
+  return /^[A-Za-záéíóúÁÉÍÓÚüÜñÑ\s'-]+$/.test(nombre.trim())
+}
+
+function isValidTelefono(tel) {
+  return /^\+[0-9\s\-]{7,15}$/.test(tel.trim())
+}
+
 export default function RegisterCliente() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', direccion: '', password: '' })
@@ -32,11 +40,32 @@ export default function RegisterCliente() {
   const [loading, setLoading] = useState(false)
 
   const strength = passwordStrength(form.password)
-
+  
   const fieldErrors = {
-    nombre:   touched.nombre   && !form.nombre.trim()           ? 'El nombre es obligatorio' : '',
-    correo:   touched.correo   && !isValidEmail(form.correo)    ? 'Ingresa un correo válido' : '',
-    password: touched.password && form.password.length < 8      ? 'Mínimo 8 caracteres' : '',
+    nombre:
+      touched.nombre && !form.nombre.trim()
+        ? 'El nombre es obligatorio'
+        : touched.nombre && !isValidNombre(form.nombre)
+        ? 'El nombre no puede contener números ni símbolos'
+        : '',
+    correo:   
+      touched.correo && !isValidEmail(form.correo)    
+        ? 'Ingresa un correo válido' 
+        : '',
+    telefono:
+      touched.telefono && form.telefono.trim() && !isValidTelefono(form.telefono)
+        ? !form.telefono.startsWith('+')
+          ? 'El teléfono debe iniciar con + (ej: +57 300 000 0000)'
+          : 'Formato inválido. Ejemplo: +57 300 000 0000'
+        : '',
+    direccion:
+      touched.direccion && form.direccion.trim() && form.direccion.trim().length < 5
+        ? 'Ingresa una dirección válida'
+        : '',
+    password:
+      touched.password && form.password.length < 8
+        ? 'Mínimo 8 caracteres'
+        : '',
   }
 
   const handleChange = (e) => {
@@ -49,11 +78,20 @@ export default function RegisterCliente() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     // Marcar todos los campos como tocados para mostrar errores
-    setTouched({ nombre: true, correo: true, password: true })
-    if (!form.nombre.trim() || !isValidEmail(form.correo) || form.password.length < 8) return
+    setTouched({ nombre: true, correo: true, telefono: true, direccion: true, password: true })
+    const hayErrores =
+      !form.nombre.trim() ||
+      !isValidNombre(form.nombre) ||
+      !isValidEmail(form.correo) ||
+      form.password.length < 8 ||
+      (form.telefono.trim() && !isValidTelefono(form.telefono)) ||
+      (form.direccion.trim() && form.direccion.trim().length < 5)
+
+    if (hayErrores) return
 
     setError('')
     setLoading(true)
+
     try {
       const { data } = await api.post('/auth/registro/cliente', form)
       setSuccess(data.msg || 'Cuenta creada. Revisa tu correo para confirmarla.')
@@ -127,10 +165,22 @@ export default function RegisterCliente() {
             <label className="auth-label" htmlFor="rc-telefono">Teléfono <span style={{ color: 'var(--gray)', fontWeight: 400 }}>(opcional)</span></label>
             <input
               id="rc-telefono" name="telefono" type="tel"
-              className="auth-input"
-              value={form.telefono} onChange={handleChange}
+              className={`auth-input ${
+                fieldErrors.telefono
+                  ? 'auth-input--error'
+                  : touched.telefono && form.telefono && isValidTelefono(form.telefono)
+                  ? 'auth-input--success'
+                  : ''
+              }`}
+              value={form.telefono} onChange={handleChange} onBlur={handleBlur}
               placeholder="+57 300 000 0000" autoComplete="tel"
             />
+            {!form.telefono && !fieldErrors.telefono && (
+                <span className="auth-field-hint" style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>
+                  Debe iniciar con + seguido del código de país
+                </span>
+              )}
+              {fieldErrors.telefono && <span className="auth-field-error">⚠ {fieldErrors.telefono}</span>}
           </div>
 
           {/* Dirección */}
@@ -138,10 +188,17 @@ export default function RegisterCliente() {
             <label className="auth-label" htmlFor="rc-direccion">Dirección <span style={{ color: 'var(--gray)', fontWeight: 400 }}>(opcional)</span></label>
             <input
               id="rc-direccion" name="direccion" type="text"
-              className="auth-input"
-              value={form.direccion} onChange={handleChange}
+              className={`auth-input ${
+                fieldErrors.direccion
+                  ? 'auth-input--error'
+                  : touched.direccion && form.direccion.trim().length >= 5
+                  ? 'auth-input--success'
+                  : ''
+              }`}
+              value={form.direccion} onChange={handleChange} onBlur={handleBlur}
               placeholder="Calle 12 #3-45, Cúcuta"
             />
+            {fieldErrors.direccion && <span className="auth-field-error">⚠ {fieldErrors.direccion}</span>}
           </div>
 
           {/* Contraseña */}
