@@ -1,0 +1,108 @@
+/* ============================================
+   ZONA ZAPATOS — Design System
+   Paleta: magenta, dark-red, olive, negro
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  /* Brand colors */
+  --magenta:        #C8006E;
+  --magenta-light:  #E91E8C;
+  --magenta-dark:   #960052;
+  --magenta-bg:     rgba(200,0,110,0.08);
+
+  --darkred:        #8B1A2D;
+  --darkred-light:  #A82035;
+
+  --olive:          #8B9D3A;
+  --olive-light:    #A3B63E;
+
+  /* Neutrals */
+  --black:          #0D0D0D;
+  --dark:           #1A1A1A;
+  --dark2:          #2C2C2C;
+  --gray:           #6B7280;
+  --gray-light:     #E5E7EB;
+  --cream:          #F9F5EE;
+  --white:          #FFFFFF;
+
+  /* Semantic */
+  --success:        #16A34A;
+  --success-bg:     #F0FDF4;
+  --error:          #DC2626;
+  --error-bg:       #FEF2F2;
+  --warning:        #D97706;
+
+  /* Typography */
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Layout */
+  --nav-h: 64px;
+  --max-w: 1280px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.20);
+
+  /* Radius */
+  --r-sm:   6px;
+  --r-md:   12px;
+  --r-lg:   20px;
+  --r-xl:   28px;
+  --r-full: 9999px;
+
+  /* Transitions */
+  --t-fast: 0.15s ease;
+  --t-base: 0.25s ease;
+  --t-slow: 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--white);
+  color: var(--dark);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+img   { max-width: 100%; height: auto; display: block; }
+a     { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; }
+h1,h2,h3,h4,h5,h6 { line-height: 1.2; font-weight: 700; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--magenta); border-radius: var(--r-full); }
+
+/* ===== UTILITIES ===== */
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .container { padding: 0 1rem; }
+}

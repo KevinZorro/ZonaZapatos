@@ -1,0 +1,1 @@
+"""Zapatos backend application package."""
