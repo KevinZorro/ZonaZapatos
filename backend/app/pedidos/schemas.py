@@ -1,8 +1,18 @@
 """Pedidos schemas."""
 from datetime import datetime
-
 from pydantic import BaseModel
 
+class MediaResumen(BaseModel):
+    cloudinary_url: str
+    tipo: str
+    model_config = {"from_attributes": True}
+
+
+class ProductoResumen(BaseModel):
+    id: int
+    nombre: str
+    media: list[MediaResumen] = []
+    model_config = {"from_attributes": True}
 
 class ItemPedidoCreate(BaseModel):
     producto_id: int
@@ -19,7 +29,7 @@ class ItemPedidoOut(BaseModel):
     producto_id: int | None
     cantidad: int
     precio_unitario: float
-
+    producto: ProductoResumen | None = None
     model_config = {"from_attributes": True}
 
 

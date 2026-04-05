@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import SplashPage from './pages/SplashPage'
 import CatalogPage from './pages/CatalogPage'
 import ProductPage from './pages/ProductPage'
+import PedidosPage from './pages/PedidosPage'
 import ProfilePage from './pages/ProfilePage'
 import Login from './pages/auth/Login'
 import RegisterCliente from './pages/auth/RegisterCliente'
@@ -67,7 +68,7 @@ function AppRoutes() {
             {/* Cliente */}
             <Route path="/pedidos" element={
               <ProtectedRoute roles={['cliente']}>
-                <Placeholder title="Mis Pedidos" />
+                <PedidosPage />
               </ProtectedRoute>
             } />
 

@@ -1,0 +1,107 @@
+[33mcommit 0e1b66210ea9490ee7858fc1dc67917d85078fcf[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/validaciones-registro[m[33m, [m[1;32mmain[m[33m)[m
+Author: ggaby11 <ggaby11suarez.gomez@gmail.com>
+Date:   Fri Apr 3 10:16:27 2026 -0500
+
+    feat: agregar validaciones de campos en formularios de registro cliente y empresa
+
+[33mcommit eb76a97e0814a40aea21444d97c49a639200bb8b[m
+Merge: 118ee43 f373fcd
+Author: ggaby11 <ggaby11suarez.gomez@gmail.com>
+Date:   Thu Apr 2 00:50:33 2026 -0500
+
+    Merge branch 'main' of https://github.com/KevinZorro/ZonaZapatos
+
+[33mcommit 118ee4355e965f2f32ba23cf5116cfc8525d4c49[m[33m ([m[1;32msetup-inicial[m[33m)[m
+Author: ggaby11 <ggaby11suarez.gomez@gmail.com>
+Date:   Thu Apr 2 00:17:02 2026 -0500
+
+    feature: agregar filtros por empresa, categoria, precio y talla
+
+[33mcommit f373fcdf4bb1908cd0f0bf7a05ce66ce9957d2a0[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: cdff7d8 fe7f2c2
+Author: KevinZorro <111720582+KevinZorro@users.noreply.github.com>
+Date:   Wed Apr 1 22:30:39 2026 -0500
+
+    Merge pull request #4 from KevinZorro/feature/RA
+    
+    feat: add demo data seeding script for initial database population AND RA/3D
+
+[33mcommit fe7f2c241c12ef49861928739206321f818724c5[m[33m ([m[1;31morigin/feature/RA[m[33m)[m
+Author: ZorroKevin <kevindavidzorro@gmail.com>
+Date:   Wed Apr 1 22:27:01 2026 -0500
+
+    feat: add demo data seeding script for initial database population
+    
+    - Implemented a new script `seed_demo_data.py` to populate the database with demo data for companies, products, clients, orders, surveys, and returns.
+    - Included functions to reset existing seed data, create users, seed categories, companies, and products, and generate orders and surveys.
+    - Added placeholder image and logo generation functions for product representation.
+    - Integrated satisfaction comments and return reasons for realistic data simulation.
+    - Established a dashboard stubs seeding process for sales analysis and predictions.
+
+[33mcommit cdff7d8f72fd53533c3f91e2245e302711b97f0a[m
+Merge: 9c5468b bd982d2
+Author: KevinZorro <111720582+KevinZorro@users.noreply.github.com>
+Date:   Tue Mar 31 21:08:31 2026 -0500
+
+    Merge pull request #3 from KevinZorro/AR-and-3D
+    
+    changes in security and requirements to let us register and login, re…
+
+[33mcommit bd982d2e6fb947897579b82e8e088ef327714b03[m[33m ([m[1;31morigin/fix/auth[m[33m)[m
+Author: ZorroKevin <kevindavidzorro@gmail.com>
+Date:   Tue Mar 31 21:06:54 2026 -0500
+
+    changes in security and requirements to let us register and login, resolving problems of compability
+
+[33mcommit 9c5468bf44b463c96b6940c31ecb0c51bda09dff[m
+Merge: 00f84a3 25e6280
+Author: KevinZorro <111720582+KevinZorro@users.noreply.github.com>
+Date:   Mon Mar 30 14:33:19 2026 -0500
+
+    Merge pull request #2 from KevinZorro/setup-inicial
+    
+    feat: add frontend and implement RF1-RF6 with profile and product man…
+
+[33mcommit 25e6280fbd5e23759fdd662a216e820da3d082af[m[33m ([m[1;31morigin/setup-inicial[m[33m)[m
+Author: Neferxd31 <nefersneyder508@gmail.com>
+Date:   Sun Mar 29 19:07:09 2026 -0500
+
+    feat: add frontend and implement RF1-RF6 with profile and product management
+    
+    - New React frontend (Vite + Framer Motion) with full design system
+    - RF1-RF2: empresa and cliente registration with validation
+    - RF3-RF4: JWT login/logout with role-based redirection
+    - RF5: public catalog with search, filters and pagination
+    - RF6: product detail with tallas, colores, WhatsApp and AR viewer
+    - Profile page: edit data, upload photo, soft delete account
+    - Empresa: full product CRUD (create, edit, delete, filter)
+    - Backend: startup table creation, email fallback, cloudinary optional
+    - Fix: removed activo column dependency, use cuenta_confirmada for soft delete
+
+[33mcommit 00f84a33fd4afbbabf4da8483572995cd6d35884[m
+Merge: 20f7679 848ded9
+Author: KevinZorro <111720582+KevinZorro@users.noreply.github.com>
+Date:   Sat Mar 28 16:52:14 2026 -0500
+
+    Merge pull request #1 from KevinZorro/setup-inicial
+    
+    Setup inicial
+
+[33mcommit 848ded9ee7ea70fa5040bb27d3c9ebae0fad63e4[m
+Merge: b11a7ad 20f7679
+Author: ZorroKevin <kevindavidzorro@gmail.com>
+Date:   Sat Mar 28 16:39:45 2026 -0500
+
+    Merge branch 'main' of https://github.com/KevinZorro/ZonaZapatos
+
+[33mcommit b11a7ad30ce53006e476952861d77364b27f013f[m
+Author: ZorroKevin <kevindavidzorro@gmail.com>
+Date:   Sat Mar 28 16:37:01 2026 -0500
+
+    Initial commit
+
+[33mcommit 20f76792c9c6f94155a9dc17c237421edc24b106[m
+Author: KevinZorro <111720582+KevinZorro@users.noreply.github.com>
+Date:   Sat Mar 28 15:10:42 2026 -0500
+
+    Initial commit
