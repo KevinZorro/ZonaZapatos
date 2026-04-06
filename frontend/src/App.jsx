@@ -8,7 +8,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import SplashPage from './pages/SplashPage'
 import CatalogPage from './pages/CatalogPage'
 import ProductPage from './pages/ProductPage'
-import PedidosPage from './pages/PedidosPage'
+import PedidosPage from './pages/client/PedidosPage'
+import PedidoDetallePage from './pages/client/PedidoDetallePage'
 import ProfilePage from './pages/ProfilePage'
 import Login from './pages/auth/Login'
 import RegisterCliente from './pages/auth/RegisterCliente'
@@ -69,6 +70,12 @@ function AppRoutes() {
             <Route path="/pedidos" element={
               <ProtectedRoute roles={['cliente']}>
                 <PedidosPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/pedidos/:id" element={
+              <ProtectedRoute roles={['cliente']}>
+                <PedidoDetallePage />
               </ProtectedRoute>
             } />
 

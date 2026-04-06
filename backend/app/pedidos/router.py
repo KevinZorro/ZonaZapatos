@@ -62,6 +62,29 @@ def list_mis_pedidos(
     )
     return pedidos
 
+@router.get(
+    "/pedidos/{pedido_id}",
+    response_model=PedidoOut,
+)
+def get_pedido(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(require_rol("cliente")),
+):
+    cliente = _get_cliente(payload, db)
+    pedido = (
+        db.query(Pedido)
+        .options(
+            joinedload(Pedido.items)
+            .joinedload(ItemPedido.producto)
+            .joinedload(Producto.media)
+        )
+        .filter(Pedido.id == pedido_id, Pedido.cliente_id == cliente.id)
+        .first()
+    )
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    return pedido
 
 @router.put(
     "/pedidos/{pedido_id}/entregar",
