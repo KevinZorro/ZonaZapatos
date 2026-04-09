@@ -14,6 +14,7 @@ import RegisterCliente from './pages/auth/RegisterCliente'
 import RegisterEmpresa from './pages/auth/RegisterEmpresa'
 import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
+import DashboardVentasPage from './pages/empresa/DashboardVentasPage'
 
 import './App.css'
 
@@ -84,7 +85,7 @@ function AppRoutes() {
             } />
             <Route path="/empresa/dashboard" element={
               <ProtectedRoute roles={['empresa']}>
-                <Placeholder title="Dashboard de Ventas" />
+                <DashboardVentasPage />
               </ProtectedRoute>
             } />
             <Route path="/empresa/analisis" element={

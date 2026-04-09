@@ -1,0 +1,383 @@
+/* ── Dashboard de Ventas — RF12 ──────────────────────────────────────────── */
+
+.dv-page {
+  min-height: 100vh;
+  background: #F9FAFB;
+  padding-bottom: 4rem;
+}
+
+/* ── Header ── */
+.dv-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-top: 2rem;
+  padding-bottom: 1.5rem;
+}
+
+.dv-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.dv-subtitle {
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin: 0.25rem 0 0;
+}
+
+/* ── Filters ── */
+.dv-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dv-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.dv-filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dv-filter-input {
+  padding: 0.45rem 0.75rem;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.dv-filter-input:focus {
+  border-color: #10B981;
+}
+
+/* ── Button ── */
+.dv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  background: #10B981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, opacity 0.18s;
+  white-space: nowrap;
+}
+
+.dv-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.dv-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dv-btn--sm {
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+}
+
+/* ── Spinner ── */
+.dv-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: dv-spin 0.7s linear infinite;
+}
+
+@keyframes dv-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Error banner ── */
+.dv-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #DC2626;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Content ── */
+.dv-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ── Section ── */
+.dv-section {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #F3F4F6;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.dv-section--half {
+  flex: 1 1 300px;
+}
+
+.dv-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 1.25rem;
+}
+
+/* ── KPI Grid ── */
+.dv-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1rem;
+}
+
+.dv-kpi {
+  background: #F9FAFB;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  border: 1px solid #F3F4F6;
+  transition: box-shadow 0.18s;
+}
+
+.dv-kpi:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.dv-kpi--green  { border-left: 4px solid #10B981; background: #F0FDF4; }
+.dv-kpi--blue   { border-left: 4px solid #3B82F6; background: #EFF6FF; }
+.dv-kpi--amber  { border-left: 4px solid #F59E0B; background: #FFFBEB; }
+.dv-kpi--gray   { border-left: 4px solid #9CA3AF; background: #F9FAFB; }
+.dv-kpi--purple { border-left: 4px solid #8B5CF6; background: #F5F3FF; }
+.dv-kpi--red    { border-left: 4px solid #EF4444; background: #FEF2F2; }
+
+.dv-kpi__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem;
+}
+
+.dv-kpi__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.dv-kpi__sub {
+  font-size: 0.72rem;
+  color: #9CA3AF;
+  margin: 0.25rem 0 0;
+}
+
+/* ── Chart card ── */
+.dv-chart-card {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Rankings grid ── */
+.dv-rankings {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+/* ── Custom tooltip ── */
+.dv-tooltip {
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+  min-width: 150px;
+}
+
+.dv-tooltip__title {
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+}
+
+.dv-tooltip__row {
+  color: #374151;
+  margin: 0.2rem 0 0;
+}
+
+.dv-tooltip__row--green strong {
+  color: #10B981;
+}
+
+/* ── Table ── */
+.dv-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #F3F4F6;
+}
+
+.dv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.dv-table th {
+  background: #F9FAFB;
+  color: #6B7280;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #F3F4F6;
+  white-space: nowrap;
+}
+
+.dv-table td {
+  padding: 0.75rem 1rem;
+  color: #374151;
+  border-bottom: 1px solid #F9FAFB;
+  white-space: nowrap;
+}
+
+.dv-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dv-table tr:hover td {
+  background: #FAFAFA;
+}
+
+.dv-table__right {
+  text-align: right !important;
+}
+
+.dv-table__id {
+  color: #9CA3AF;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.dv-table__date {
+  color: #6B7280;
+}
+
+.dv-table__canal {
+  text-transform: capitalize;
+}
+
+.dv-table__total {
+  font-weight: 700;
+  color: #059669;
+}
+
+/* ── Estado badges ── */
+.dv-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dv-badge--pendiente  { background: #FEF3C7; color: #92400E; }
+.dv-badge--confirmado { background: #DBEAFE; color: #1E40AF; }
+.dv-badge--enviado    { background: #EDE9FE; color: #5B21B6; }
+.dv-badge--entregado  { background: #D1FAE5; color: #065F46; }
+.dv-badge--cancelado  { background: #FEE2E2; color: #991B1B; }
+
+/* ── Empty state ── */
+.dv-empty {
+  text-align: center;
+  color: #9CA3AF;
+  padding: 2rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ── Skeleton ── */
+.dv-skeleton {
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+  background-size: 200% 100%;
+  animation: dv-shimmer 1.4s infinite;
+  border-radius: 10px;
+}
+
+@keyframes dv-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .dv-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dv-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dv-rankings {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .dv-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dv-kpi__value {
+    font-size: 1.2rem;
+  }
+
+  .dv-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dv-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
