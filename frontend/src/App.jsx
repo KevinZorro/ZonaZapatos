@@ -16,6 +16,7 @@ import RegisterCliente from './pages/auth/RegisterCliente'
 import RegisterEmpresa from './pages/auth/RegisterEmpresa'
 import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
+import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
 
 import './App.css'
 
@@ -76,6 +77,12 @@ function AppRoutes() {
             <Route path="/pedidos/:id" element={
               <ProtectedRoute roles={['cliente']}>
                 <PedidoDetallePage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/devoluciones/solicitar/:pedidoId" element={
+              <ProtectedRoute roles={['cliente']}>
+                <SolicitudDevolucionPage />
               </ProtectedRoute>
             } />
 
