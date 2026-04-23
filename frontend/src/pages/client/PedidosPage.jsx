@@ -207,7 +207,7 @@ return (
           <span className="text-6xl">🛍️</span>
           <h2 className="text-lg font-bold text-gray-800">Aún no tienes pedidos</h2>
           <p className="text-sm text-gray-400">Explora el catálogo y haz tu primera compra</p>
-          <Link to="/catalogo" className="mt-2 px-7 py-3 bg-gray-900 text-sm text-white font-bold rounded-full hover:opacity-80 transition">
+          <Link to="/catalogo" className="mt-2 px-7 py-3 bg-gray-900 text-sm rounded-full hover:opacity-80 transition">
             <div className='text-white'>Ver catálogo</div>
           </Link>
         </div>

@@ -63,11 +63,8 @@ export default function CarritoPage() {
       <span className="text-6xl">🛒</span>
       <h2 className="text-xl font-bold text-gray-800">Tu carrito está vacío</h2>
       <p className="text-sm text-gray-400">Agrega productos desde el catálogo</p>
-      <Link
-        to="/catalogo"
-        className="mt-2 px-7 py-3 bg-gray-900 text-white text-sm font-bold rounded-full hover:opacity-80 transition"
-      >
-        Ver catálogo
+      <Link to="/catalogo" className="mt-2 px-7 py-3 bg-gray-900 text-sm rounded-full hover:opacity-80 transition">
+      <div className='text-white'>Ver catálogo</div>
       </Link>
     </div>
   )
