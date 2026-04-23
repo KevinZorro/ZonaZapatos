@@ -14,6 +14,8 @@ class EstadoPedidoEnum(str, enum.Enum):
     enviado = "enviado"
     entregado = "entregado"
     cancelado = "cancelado"
+    en_devolucion = "en_devolucion"
+    devuelto = "devuelto"
 
 
 class CanalContactoEnum(str, enum.Enum):

@@ -8,7 +8,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.devoluciones.models import Devolucion, EvidenciaDevolucion, TipoArchivoEnum
-from app.devoluciones.schemas import DevolucionCreate, DevolucionOut, DevolucionEstadoUpdate
+from app.devoluciones.schemas import (
+    DevolucionCreate, DevolucionOut, DevolucionEstadoUpdate,
+    EvidenciaOut, ClienteInfo, ProductoSnapshot, PedidoInfo,
+    DevolucionDetalleEmpresa, DevolucionPendienteOut
+)
 from app.pedidos.models import Pedido
 from app.usuarios.models import Usuario, Cliente
 from app.core.cloudinary_client import upload_file
@@ -260,7 +264,11 @@ async def actualizar_estado_devolucion(
     db: Session = Depends(get_db),
     current_user_payload: dict = Depends(get_current_user)
 ):
-    """Actualizar el estado de una devolución (solo para empresas)."""
+    """Actualizar el estado de una devolución (solo para empresas).
+    
+    Si el estado es 'aprobada', también actualiza el estado del pedido a 'en_devolucion'.
+    """
+    from app.pedidos.models import EstadoPedidoEnum
     
     # Obtener el rol del usuario desde el payload JWT
     current_user_rol = current_user_payload.get("rol")
@@ -285,8 +293,16 @@ async def actualizar_estado_devolucion(
     if not devolucion:
         raise HTTPException(status_code=404, detail="Devolución no encontrada")
     
-    # Actualizar estado
+    # Actualizar estado de la devolución
     devolucion.estado = estado_update.estado
+    
+    # Si se aprueba, actualizar también el estado del pedido (RF11)
+    if estado_update.estado == "aprobada":
+        pedido = db.query(Pedido).filter(Pedido.id == devolucion.pedido_id).first()
+        if pedido:
+            pedido.estado = EstadoPedidoEnum.en_devolucion
+            print(f"DEBUG: Pedido {pedido.id} actualizado a estado 'en_devolucion'")
+    
     db.commit()
     db.refresh(devolucion)
     
@@ -327,3 +343,137 @@ async def listar_devoluciones(
             pedido_id=dev.pedido_id
         ) for dev in devoluciones
     ]
+
+
+@router.get("/pendientes", response_model=List[DevolucionPendienteOut])
+async def listar_devoluciones_pendientes(
+    db: Session = Depends(get_db),
+    current_user_payload: dict = Depends(get_current_user)
+):
+    """Listar devoluciones con estado 'solicitada' para la bandeja de entrada de la empresa (HU07)."""
+    
+    # Obtener el rol del usuario desde el payload JWT
+    current_user_rol = current_user_payload.get("rol")
+    
+    # Solo las empresas pueden ver la bandeja de devoluciones
+    if current_user_rol != "empresa":
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    # Buscar devoluciones con estado 'solicitada'
+    devoluciones = db.query(Devolucion).filter(
+        Devolucion.estado == "solicitada"
+    ).order_by(Devolucion.fecha_solicitud.desc()).all()
+    
+    resultado = []
+    for dev in devoluciones:
+        # Obtener información del pedido y cliente
+        pedido = db.query(Pedido).filter(Pedido.id == dev.pedido_id).first()
+        if not pedido:
+            continue
+            
+        cliente = db.query(Cliente).filter(Cliente.id == pedido.cliente_id).first()
+        if not cliente:
+            continue
+        
+        # Contar productos en el pedido
+        total_productos = len(pedido.items) if pedido.items else 0
+        
+        resultado.append({
+            "id": dev.id,
+            "motivo": dev.motivo,
+            "estado": dev.estado,
+            "fecha_solicitud": dev.fecha_solicitud,
+            "pedido_id": dev.pedido_id,
+            "cliente_nombre": cliente.nombre,
+            "cliente_correo": cliente.usuario.correo if cliente.usuario else "N/A",
+            "total_productos": total_productos
+        })
+    
+    return resultado
+
+
+@router.get("/{devolucion_id}/detalle", response_model=DevolucionDetalleEmpresa)
+async def obtener_detalle_devolucion_empresa(
+    devolucion_id: int,
+    db: Session = Depends(get_db),
+    current_user_payload: dict = Depends(get_current_user)
+):
+    """Obtener detalle completo de una devolución para la empresa (HU07 + RF10 + RF11).
+    
+    Incluye:
+    - Información del cliente
+    - Información del pedido
+    - Evidencias fotográficas desde Cloudinary
+    - Snapshot inmutable del producto (datos históricos del momento de la compra)
+    """
+    
+    # Obtener el rol del usuario desde el payload JWT
+    current_user_rol = current_user_payload.get("rol")
+    
+    # Solo las empresas pueden ver el detalle completo
+    if current_user_rol != "empresa":
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    # Buscar la devolución
+    devolucion = db.query(Devolucion).filter(Devolucion.id == devolucion_id).first()
+    if not devolucion:
+        raise HTTPException(status_code=404, detail="Devolución no encontrada")
+    
+    # Obtener el pedido
+    pedido = db.query(Pedido).filter(Pedido.id == devolucion.pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    
+    # Obtener el cliente
+    cliente = db.query(Cliente).filter(Cliente.id == pedido.cliente_id).first()
+    if not cliente:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Obtener evidencias
+    evidencias = db.query(EvidenciaDevolucion).filter(
+        EvidenciaDevolucion.devolucion_id == devolucion.id
+    ).all()
+    
+    evidencias_out = [
+        EvidenciaOut(
+            id=ev.id,
+            cloudinary_url=ev.cloudinary_url,
+            cloudinary_public_id=ev.cloudinary_public_id,
+            tipo_archivo=ev.tipo_archivo.value
+        ) for ev in evidencias
+    ]
+    
+    # Construir productos desde el snapshot inmutable (RF10)
+    productos_snapshot = []
+    for item in pedido.items:
+        productos_snapshot.append({
+            "nombre": item.producto_nombre_snapshot or (item.producto.nombre if item.producto else "Producto desconocido"),
+            "sku": item.producto_sku_snapshot or (item.producto.sku if item.producto else "N/A"),
+            "descripcion": item.producto_descripcion_snapshot or (item.producto.descripcion if item.producto else ""),
+            "imagen_url": item.producto_imagen_url_snapshot or (item.producto.imagen_url if item.producto else None),
+            "cantidad": item.cantidad,
+            "precio_unitario": item.precio_unitario
+        })
+    
+    # Construir respuesta
+    return {
+        "id": devolucion.id,
+        "motivo": devolucion.motivo,
+        "comentario": devolucion.comentario,
+        "estado": devolucion.estado,
+        "fecha_solicitud": devolucion.fecha_solicitud,
+        "pedido": {
+            "id": pedido.id,
+            "estado": pedido.estado.value,
+            "fecha_pedido": pedido.fecha_pedido,
+            "total": pedido.total,
+            "productos": productos_snapshot
+        },
+        "cliente": {
+            "id": cliente.id,
+            "nombre": cliente.nombre,
+            "correo": cliente.usuario.correo if cliente.usuario else "N/A",
+            "telefono": cliente.telefono
+        },
+        "evidencias": evidencias_out
+    }
