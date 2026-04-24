@@ -224,21 +224,6 @@ export default function ProfilePage() {
             </form>
           </section>
 
-          {/* Foto de perfil */}
-          <section className="profile-section">
-            <h3 className="profile-section__title">Foto de perfil</h3>
-            <p className="profile-section__desc">
-              Sube una foto para personalizar tu cuenta. Formatos: JPG, PNG · Máx. 5 MB.
-            </p>
-            <button
-              className="profile-btn profile-btn--secondary"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingFoto}
-            >
-              {uploadingFoto ? <><span className="profile-spinner profile-spinner--sm" /> Subiendo…</> : '📷 Cambiar foto'}
-            </button>
-          </section>
-
           {/* Zona de peligro */}
           <section className="profile-section profile-section--danger">
             <h3 className="profile-section__title profile-section__title--danger">Zona de peligro</h3>

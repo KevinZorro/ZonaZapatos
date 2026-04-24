@@ -10,7 +10,29 @@ function isValidEmail(email) {
 }
 
 function isValidNIT(nit) {
-  return nit.trim().length >= 5
+  const clean = nit.trim()
+  return clean.length >= 5 && /^[\d.\-]+$/.test(clean)
+}
+
+function isValidTelefono(tel) {
+  return /^\+57[\s\-]?[0-9]{7,10}$/.test(tel.trim())
+}
+
+function isValidWhatsapp(wa) {
+  return /^\+57[\s\-]?[0-9]{7,10}$/.test(wa.trim())
+}
+
+function passwordStrength(pwd) {
+  if (!pwd) return { score: 0, label: '', color: '' }
+  let score = 0
+  if (pwd.length >= 8) score++
+  if (/[A-Z]/.test(pwd)) score++
+  if (/[0-9]/.test(pwd)) score++
+  if (/[^A-Za-z0-9]/.test(pwd)) score++
+
+  if (score <= 1) return { score, label: 'Débil', color: 'weak' }
+  if (score <= 2) return { score, label: 'Regular', color: 'fair' }
+  return { score, label: 'Fuerte', color: 'strong' }
 }
 
 export default function RegisterEmpresa() {
@@ -27,11 +49,41 @@ export default function RegisterEmpresa() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const strength = passwordStrength(form.password)
+
   const fieldErrors = {
-    nombre:   touched.nombre   && !form.nombre.trim()         ? 'La razón social es obligatoria' : '',
-    nit:      touched.nit      && !isValidNIT(form.nit)       ? 'El NIT es obligatorio y debe tener mínimo 5 caracteres' : '',
-    correo:   touched.correo   && !isValidEmail(form.correo)  ? 'Ingresa un correo válido' : '',
-    password: touched.password && form.password.length < 8    ? 'Mínimo 8 caracteres' : '',
+    nombre:
+      touched.nombre && !form.nombre.trim()
+        ? 'La razón social es obligatoria'
+        : '',
+    nit:
+      touched.nit && !form.nit.trim()
+        ? 'El NIT es obligatorio'
+        : touched.nit && /[a-zA-Z]/.test(form.nit)
+        ? 'El NIT no puede contener letras'                           // ✅
+        : touched.nit && !isValidNIT(form.nit)
+        ? 'El NIT debe tener mínimo 5 dígitos (ej: 900.123.456-7)'
+        : '',
+    correo:
+      touched.correo && !isValidEmail(form.correo)
+        ? 'Ingresa un correo válido'
+        : '',
+    telefono:
+      touched.telefono && form.telefono.trim() && !form.telefono.startsWith('+57')
+        ? 'El teléfono debe iniciar con +57'
+        : touched.telefono && form.telefono.trim() && !isValidTelefono(form.telefono)
+        ? 'Formato inválido. Ejemplo: +57 300 000 0000'
+        : '',
+    whatsapp:
+      touched.whatsapp && form.whatsapp.trim() && !form.whatsapp.startsWith('+57')
+        ? 'El WhatsApp debe iniciar con +57'
+        : touched.whatsapp && form.whatsapp.trim() && !isValidWhatsapp(form.whatsapp)
+        ? 'Formato inválido. Ejemplo: +57 300 000 0000'
+        : '',
+    password:
+      touched.password && form.password.length < 8
+        ? 'Mínimo 8 caracteres'
+        : '',
   }
 
   const handleChange = (e) => {
@@ -51,8 +103,17 @@ export default function RegisterEmpresa() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setTouched({ nombre: true, nit: true, correo: true, password: true })
-    if (!form.nombre.trim() || !isValidNIT(form.nit) || !isValidEmail(form.correo) || form.password.length < 8) return
+    setTouched({ nombre: true, nit: true, correo: true, telefono: true, whatsapp:true, password: true })
+    
+    const hayErrores =
+      !form.nombre.trim() ||
+      !isValidNIT(form.nit) ||
+      !isValidEmail(form.correo) ||
+      form.password.length < 8 ||
+      (form.telefono.trim() && !isValidTelefono(form.telefono)) ||
+      (form.whatsapp.trim() && !isValidWhatsapp(form.whatsapp))
+
+    if (hayErrores) return
 
     setError('')
     setLoading(true)
@@ -167,10 +228,22 @@ export default function RegisterEmpresa() {
               <label className="auth-label" htmlFor="re-telefono">Teléfono</label>
               <input
                 id="re-telefono" name="telefono" type="tel"
-                className="auth-input"
-                value={form.telefono} onChange={handleChange}
-                placeholder="575 1234"
+                className={`auth-input ${
+                  fieldErrors.telefono
+                    ? 'auth-input--error'
+                    : touched.telefono && form.telefono && isValidTelefono(form.telefono)
+                    ? 'auth-input--success'
+                    : ''
+                }`}
+                value={form.telefono} onChange={handleChange} onBlur={handleBlur}
+                placeholder="+57 300 000 0000"
               />
+              {!form.telefono && !fieldErrors.telefono && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>
+                  Debe iniciar con +57
+                </span>
+              )}
+              {fieldErrors.telefono && <span className="auth-field-error">⚠ {fieldErrors.telefono}</span>}
             </div>
 
             {/* WhatsApp */}
@@ -178,10 +251,22 @@ export default function RegisterEmpresa() {
               <label className="auth-label" htmlFor="re-whatsapp">WhatsApp Business</label>
               <input
                 id="re-whatsapp" name="whatsapp" type="tel"
-                className="auth-input"
-                value={form.whatsapp} onChange={handleChange}
+                className={`auth-input ${
+                  fieldErrors.whatsapp
+                    ? 'auth-input--error'
+                    : touched.whatsapp && form.whatsapp && isValidWhatsapp(form.whatsapp)
+                    ? 'auth-input--success'
+                    : ''
+                }`}
+                value={form.whatsapp} onChange={handleChange} onBlur={handleBlur}
                 placeholder="+57 300 000 0000"
               />
+              {!form.whatsapp && !fieldErrors.whatsapp && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>
+                  Debe iniciar con +57
+                </span>
+              )}
+              {fieldErrors.whatsapp && <span className="auth-field-error">⚠ {fieldErrors.whatsapp}</span>}
             </div>
 
             {/* Ciudad */}
@@ -223,6 +308,23 @@ export default function RegisterEmpresa() {
                 </button>
               </div>
               {fieldErrors.password && <span className="auth-field-error">⚠ {fieldErrors.password}</span>}
+              {form.password && (
+                <div>
+                  <div className="auth-strength">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className={`auth-strength__bar ${i <= strength.score ? `auth-strength__bar--${strength.color}` : ''}`}
+                      />
+                    ))}
+                  </div>
+                  <span className="auth-strength__label" style={{
+                    color: strength.color === 'weak' ? 'var(--error)' : strength.color === 'fair' ? 'var(--warning)' : 'var(--success)'
+                  }}>
+                    Contraseña {strength.label}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

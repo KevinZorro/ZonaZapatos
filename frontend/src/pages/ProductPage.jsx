@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useCarrito } from '../context/CarritoContext'
 import ARViewer from '../components/ARViewer'
 import './ProductPage.css'
 
@@ -118,6 +119,8 @@ export default function ProductPage() {
   const whatsapp = product.empresa_whatsapp
   const waMsg = encodeURIComponent(`Hola, estoy interesado en el producto: ${product.nombre} (ID: ${product.id})`)
   const waUrl = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '')}?text=${waMsg}` : null
+
+  const { agregarItem } = useCarrito()
 
   return (
     <div className="product-page">
@@ -285,7 +288,12 @@ export default function ProductPage() {
               disabled={agotado}
               whileTap={{ scale: agotado ? 1 : 0.97 }}
               title={agotado ? 'Producto agotado' : 'Agregar al carrito'}
-            >
+              onClick={() => {
+                if (!agotado) {
+                  agregarItem(product)
+                  navigate('/carrito')
+                }
+              }}>
               🛒 {agotado ? 'No disponible' : 'Agregar al carrito'}
             </motion.button>
           </div>

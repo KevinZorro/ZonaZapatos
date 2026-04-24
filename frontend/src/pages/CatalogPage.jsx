@@ -78,12 +78,29 @@ export default function CatalogPage() {
   const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [filterEstado, setFilterEstado] = useState('')
+  const [filterEmpresa, setFilterEmpresa] = useState('')
+  const [filterCategoria, setFilterCategoria] = useState('')
+  const [precioMin, setPrecioMin] = useState('')
+  const [precioMax, setPrecioMax] = useState('')
+  const [filterTalla, setFilterTalla] = useState('')
+  const [empresas, setEmpresas] = useState([])
+  const [categorias, setCategorias] = useState([])
   const PAGE_SIZE = 20
 
   const fetchProducts = useCallback(async (p = 1) => {
     setLoading(true)
     setError('')
     try {
+      const params = new URLSearchParams({
+        page: p,
+        page_size: PAGE_SIZE,
+      })
+      if (filterEstado) params.append('estado', filterEstado)
+      if (filterEmpresa) params.append('empresa_id', filterEmpresa)
+      if (filterCategoria) params.append('categoria_id', filterCategoria)
+      if (precioMin) params.append('precio_min', precioMin)
+      if (precioMax) params.append('precio_max', precioMax)
+      if (filterTalla) params.append('talla', filterTalla)
       const res = await fetch(`${API}/productos?page=${p}&page_size=${PAGE_SIZE}`)
       if (!res.ok) throw new Error('No se pudo cargar el catálogo')
       const data = await res.json()
@@ -95,12 +112,30 @@ export default function CatalogPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [filterEstado, filterEmpresa, filterCategoria, precioMin, precioMax, filterTalla])
 
   useEffect(() => {
     setPage(1)
     fetchProducts(1)
   }, [fetchProducts])
+
+  useEffect(() => {
+    // Cargar empresas únicas y categorías para los filtros
+    fetch(`${API}/productos?page_size=100`)
+      .then(r => r.json())
+      .then(data => {
+        const emps = {}
+        data.items.forEach(p => {
+          if (p.empresa_id) emps[p.empresa_id] = p.empresa_nombre || `Empresa #${p.empresa_id}`
+        })
+        setEmpresas(Object.entries(emps).map(([id, nombre]) => ({ id: Number(id), nombre })))
+      })
+
+    fetch(`${API}/categorias`)
+      .then(r => r.json())
+      .then(data => setCategorias(data))
+      .catch(() => {}) // si no existe el endpoint, ignora
+  }, [])
 
   const loadMore = () => {
     const next = page + 1
@@ -117,6 +152,16 @@ export default function CatalogPage() {
     const matchEstado = !filterEstado || p.estado === filterEstado
     return matchSearch && matchEstado
   })
+
+  const limpiarFiltros = () => {
+    setSearch('')
+    setFilterEstado('')
+    setFilterEmpresa('')
+    setFilterCategoria('')
+    setPrecioMin('')
+    setPrecioMax('')
+    setFilterTalla('')
+  }
 
   const hasMore = products.length < total
 
@@ -145,9 +190,8 @@ export default function CatalogPage() {
       </div>
 
       <div className="container catalog-layout">
-        {/* Barra de búsqueda y filtros */}
-        <div className="catalog-filters">
-          <div className="catalog-search-wrap">
+        {/* Barra de búsqueda */}
+        <div className="catalog-search-wrap">
             <span className="catalog-search-icon">🔍</span>
             <input
               className="catalog-search"
@@ -161,21 +205,85 @@ export default function CatalogPage() {
             )}
           </div>
 
-          <div className="catalog-filter-tabs">
-            {[
-              { key: '', label: 'Todos' },
-              { key: 'activo', label: '✅ Disponibles' },
-              { key: 'agotado', label: '❌ Agotados' },
-              { key: 'inactivo', label: '🔜 Próximamente' },
-            ].map(tab => (
-              <button
-                key={tab.key}
-                className={`catalog-tab ${filterEstado === tab.key ? 'catalog-tab--active' : ''}`}
-                onClick={() => setFilterEstado(tab.key)}
-              >
-                {tab.label}
+        <div className="catalog-filters">
+          {/* Panel de filtros avanzados */} 
+          <div className="catalog-advanced-filters">
+
+            {/* Disponibilidad */}
+            <select
+              className="catalog-filter-select"
+              value={filterEstado}
+              onChange={e => { setFilterEstado(e.target.value); setPage(1) }}
+            >
+              <option value="">✅ Todos los productos</option>
+              <option value="activo">Disponibles</option>
+              <option value="agotado">Agotados</option>
+              <option value="inactivo">Proximamente</option>
+            </select>
+
+            {/* Empresa */}
+            <select
+              className="catalog-filter-select"
+              value={filterEmpresa}
+              onChange={e => { setFilterEmpresa(e.target.value); setPage(1) }}
+            >
+              <option value="">🏪 Todas las empresas</option>
+              {empresas.map(e => (
+                <option key={e.id} value={e.id}>{e.nombre}</option>
+              ))}
+            </select>
+
+            {/* Categorias */}
+            <select
+              className="catalog-filter-select"
+              value={filterCategoria}
+              onChange={e => { setFilterCategoria(e.target.value); setPage(1) }}
+            >
+              <option value="">🏷️ Todas las categorías</option>
+              {categorias.map(c => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+
+            {/* Tallas */}
+            <select
+              className="catalog-filter-select"
+              value={filterTalla}
+              onChange={e => { setFilterTalla(e.target.value); setPage(1) }}
+            >
+              <option value="">👟 Todas las tallas</option>
+              {['35','36','37','38','39','40','41','42','43'].map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+
+            {/* Rango precios */}
+            <div className="catalog-price-range">
+              <input
+                className="catalog-filter-input"
+                type="number"
+                placeholder="Precio mín"
+                value={precioMin}
+                onChange={e => setPrecioMin(e.target.value)}
+                onBlur={() => { setPage(1); fetchProducts(1) }}
+              />
+              <span>—</span>
+              <input
+                className="catalog-filter-input"
+                type="number"
+                placeholder="Precio máx"
+                value={precioMax}
+                onChange={e => setPrecioMax(e.target.value)}
+                onBlur={() => { setPage(1); fetchProducts(1) }}
+              />
+            </div>
+
+            {/* Botón limpiar */}
+            {(filterEmpresa || filterCategoria || filterTalla || precioMin || precioMax) && (
+              <button className="catalog-retry" onClick={limpiarFiltros}>
+                ✕ Limpiar filtros
               </button>
-            ))}
+            )}
           </div>
         </div>
 

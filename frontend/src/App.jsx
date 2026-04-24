@@ -8,6 +8,9 @@ import ProtectedRoute from './components/ProtectedRoute'
 import SplashPage from './pages/SplashPage'
 import CatalogPage from './pages/CatalogPage'
 import ProductPage from './pages/ProductPage'
+import PedidosPage from './pages/client/PedidosPage'
+import PedidoDetallePage from './pages/client/PedidoDetallePage'
+import CarritoPage from './pages/client/CarritoPage'
 import ProfilePage from './pages/ProfilePage'
 import Login from './pages/auth/Login'
 import RegisterCliente from './pages/auth/RegisterCliente'
@@ -67,7 +70,19 @@ function AppRoutes() {
             {/* Cliente */}
             <Route path="/pedidos" element={
               <ProtectedRoute roles={['cliente']}>
-                <Placeholder title="Mis Pedidos" />
+                <PedidosPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/pedidos/:id" element={
+              <ProtectedRoute roles={['cliente']}>
+                <PedidoDetallePage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/carrito" element={
+              <ProtectedRoute roles={['cliente']}>
+                <CarritoPage />
               </ProtectedRoute>
             } />
 
