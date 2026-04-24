@@ -4,10 +4,18 @@ from typing import List
 from pydantic import BaseModel
 
 
-class DevolucionCreate(BaseModel):
-    pedido_id: int
+class ItemDevolucionCreate(BaseModel):
+    """Item de devolución que el cliente selecciona."""
+    item_pedido_id: int  # ID del ItemPedido
+    cantidad: int
     motivo: str
     comentario: str | None = None
+
+
+class DevolucionCreate(BaseModel):
+    pedido_id: int
+    items: List[ItemDevolucionCreate]  # Productos específicos a devolver
+    comentario_general: str | None = None  # Comentario opcional para toda la devolución
 
 
 class DevolucionOut(BaseModel):
@@ -22,6 +30,35 @@ class DevolucionOut(BaseModel):
 
 class DevolucionEstadoUpdate(BaseModel):
     estado: str
+    respuesta_empresa: str | None = None  # Comentario opcional de la empresa
+
+
+# Schemas para vista del cliente con detalles del producto
+
+class ItemDevolucionOut(BaseModel):
+    """Item de devolución retornado al cliente (producto específico)."""
+    id: int
+    producto_nombre: str
+    producto_sku: str | None = None
+    producto_imagen_url: str | None = None
+    cantidad: int
+    motivo: str
+    comentario: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class DevolucionClienteOut(BaseModel):
+    """Devolución con detalles completos para el cliente - solo los productos devueltos."""
+    id: int
+    estado: str
+    fecha_solicitud: datetime
+    comentario_general: str | None = None
+    respuesta_empresa: str | None = None  # Respuesta de la empresa al aprobar/rechazar
+    pedido_id: int
+    items: List[ItemDevolucionOut]  # Solo los productos que se devuelven
+
+    model_config = {"from_attributes": True}
 
 
 # Schemas para vista de empresa (HU07 + RF11)
@@ -69,6 +106,7 @@ class DevolucionDetalleEmpresa(BaseModel):
     id: int
     motivo: str
     comentario: str | None = None
+    respuesta_empresa: str | None = None  # Respuesta de la empresa al aprobar/rechazar
     estado: str
     fecha_solicitud: datetime
     pedido: PedidoInfo

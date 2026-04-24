@@ -28,8 +28,8 @@ export default function SolicitudDevolucionPage() {
   const [success, setSuccess] = useState(false)
 
   // Form state
-  const [motivo, setMotivo] = useState('')
-  const [comentario, setComentario] = useState('')
+  const [selectedItems, setSelectedItems] = useState([])  // Items seleccionados para devolver
+  const [comentarioGeneral, setComentarioGeneral] = useState('')  // Comentario general opcional
   const [evidencias, setEvidencias] = useState([])
   const [previewImages, setPreviewImages] = useState([])
   
@@ -46,6 +46,18 @@ export default function SolicitudDevolucionPage() {
       try {
         const { data } = await api.get(`/pedidos/${pedidoId}`)
         setPedido(data)
+        // Inicializar selectedItems con todos los productos del pedido (no seleccionados)
+        const initialItems = data.items?.map(item => ({
+          item_pedido_id: item.id,
+          producto_nombre: item.producto_nombre || 'Producto',
+          producto_imagen_url: item.producto_imagen_url,
+          cantidad_comprada: item.cantidad,
+          cantidad_a_devolver: 1,
+          seleccionado: false,
+          motivo: '',
+          comentario: ''
+        })) || []
+        setSelectedItems(initialItems)
       } catch (err) {
         setError(err.response?.data?.detail || 'No se pudo cargar el pedido')
       } finally {
@@ -54,6 +66,41 @@ export default function SolicitudDevolucionPage() {
     }
     fetchPedido()
   }, [pedidoId])
+
+  // Funciones para manejar items
+  const toggleItemSeleccionado = (itemId) => {
+    setSelectedItems(prev => prev.map(item => 
+      item.item_pedido_id === itemId 
+        ? { ...item, seleccionado: !item.seleccionado }
+        : item
+    ))
+  }
+
+  const updateItemMotivo = (itemId, motivo) => {
+    setSelectedItems(prev => prev.map(item => 
+      item.item_pedido_id === itemId 
+        ? { ...item, motivo }
+        : item
+    ))
+  }
+
+  const updateItemComentario = (itemId, comentario) => {
+    setSelectedItems(prev => prev.map(item => 
+      item.item_pedido_id === itemId 
+        ? { ...item, comentario }
+        : item
+    ))
+  }
+
+  const updateItemCantidad = (itemId, cantidad) => {
+    setSelectedItems(prev => prev.map(item => {
+      if (item.item_pedido_id === itemId) {
+        const cantidadNum = Math.max(1, Math.min(parseInt(cantidad) || 1, item.cantidad_comprada))
+        return { ...item, cantidad_a_devolver: cantidadNum }
+      }
+      return item
+    }))
+  }
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files)
@@ -99,8 +146,17 @@ export default function SolicitudDevolucionPage() {
     e.preventDefault()
     
     // Validaciones
-    if (!motivo) {
-      setError('Selecciona un motivo para la devolución')
+    const itemsSeleccionados = selectedItems.filter(item => item.seleccionado)
+    
+    if (itemsSeleccionados.length === 0) {
+      setError('Debes seleccionar al menos un producto para devolver')
+      return
+    }
+
+    // Validar que todos los items seleccionados tengan motivo
+    const itemsSinMotivo = itemsSeleccionados.filter(item => !item.motivo)
+    if (itemsSinMotivo.length > 0) {
+      setError(`Debes seleccionar un motivo para: ${itemsSinMotivo.map(i => i.producto_nombre).join(', ')}`)
       return
     }
 
@@ -126,26 +182,21 @@ export default function SolicitudDevolucionPage() {
         return
       }
       
-      // Validar que los campos requeridos estén definidos
-      if (!pedidoId) {
-        setError('ID del pedido no encontrado')
-        setSubmitting(false)
-        return
-      }
-      
-      if (!motivo || motivo === '') {
-        setError('Debes seleccionar un motivo para la devolución')
-        setSubmitting(false)
-        return
-      }
+      // Preparar items para enviar
+      const itemsParaEnviar = itemsSeleccionados.map(item => ({
+        item_pedido_id: item.item_pedido_id,
+        cantidad: item.cantidad_a_devolver,
+        motivo: item.motivo,
+        comentario: item.comentario || undefined
+      }))
 
-      console.log('DEBUG: Enviando solicitud con pedidoId:', pedidoId, 'motivo:', motivo)
+      console.log('DEBUG: Enviando solicitud con items:', itemsParaEnviar)
       
       const formData = new FormData()
       formData.append('pedido_id', pedidoId)
-      formData.append('motivo', motivo)
-      if (comentario) {
-        formData.append('comentario', comentario)
+      formData.append('items', JSON.stringify(itemsParaEnviar))
+      if (comentarioGeneral) {
+        formData.append('comentario_general', comentarioGeneral)
       }
       
       evidencias.forEach(file => {
@@ -334,44 +385,109 @@ export default function SolicitudDevolucionPage() {
           </div>
 
           <div className="px-6 py-4 space-y-6">
-            {/* Motivo */}
+            {/* Productos a devolver */}
             <div>
-              <label 
-                htmlFor="motivo-devolucion"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Motivo de la devolución <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Selecciona los productos a devolver <span className="text-red-500">*</span>
               </label>
-              <select
-                id="motivo-devolucion"
-                name="motivo"
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                required
-              >
-                <option value="">Selecciona un motivo</option>
-                {MOTIVOS_DEVOLUCION.map(m => (
-                  <option key={m} value={m}>{m}</option>
+              <div className="space-y-4">
+                {selectedItems.map((item) => (
+                  <div 
+                    key={item.item_pedido_id}
+                    className={`border rounded-xl p-4 transition-colors ${item.seleccionado ? 'border-pink-500 bg-pink-50' : 'border-gray-200'}`}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <input
+                        type="checkbox"
+                        id={`item-${item.item_pedido_id}`}
+                        checked={item.seleccionado}
+                        onChange={() => toggleItemSeleccionado(item.item_pedido_id)}
+                        className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
+                      />
+                      <div className="flex items-center gap-3 flex-1">
+                        {item.producto_imagen_url ? (
+                          <img 
+                            src={item.producto_imagen_url} 
+                            alt={item.producto_nombre}
+                            className="w-12 h-12 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <span className="text-xl">👟</span>
+                          </div>
+                        )}
+                        <div>
+                          <h4 className="font-medium text-gray-900">{item.producto_nombre}</h4>
+                          <p className="text-sm text-gray-500">Cantidad comprada: {item.cantidad_comprada}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {item.seleccionado && (
+                      <div className="pl-8 space-y-3 mt-3 border-t border-pink-200 pt-3">
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">
+                              Cantidad a devolver <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              max={item.cantidad_comprada}
+                              value={item.cantidad_a_devolver}
+                              onChange={(e) => updateItemCantidad(item.item_pedido_id, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            />
+                          </div>
+                          <div className="flex-[2]">
+                            <label className="block text-xs font-semibold text-gray-600 mb-1">
+                              Motivo <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={item.motivo}
+                              onChange={(e) => updateItemMotivo(item.item_pedido_id, e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            >
+                              <option value="">Selecciona motivo</option>
+                              {MOTIVOS_DEVOLUCION.map(m => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-600 mb-1">
+                            Comentario adicional (opcional)
+                          </label>
+                          <textarea
+                            value={item.comentario}
+                            onChange={(e) => updateItemComentario(item.item_pedido_id, e.target.value)}
+                            placeholder={`¿Qué pasó con ${item.producto_nombre}?`}
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ))}
-              </select>
+              </div>
             </div>
 
-            {/* Comentarios */}
+            {/* Comentario general */}
             <div>
               <label 
-                htmlFor="comentarios-devolucion"
+                htmlFor="comentario-general"
                 className="block text-sm font-semibold text-gray-700 mb-2"
               >
-                Comentarios adicionales
+                Comentario general (opcional)
               </label>
               <textarea
-                id="comentarios-devolucion"
-                name="comentarios"
-                value={comentario}
-                onChange={(e) => setComentario(e.target.value)}
-                placeholder="Describe con más detalle lo que sucedió..."
-                rows={4}
+                id="comentario-general"
+                value={comentarioGeneral}
+                onChange={(e) => setComentarioGeneral(e.target.value)}
+                placeholder="Algún comentario adicional sobre toda la devolución..."
+                rows={3}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
               />
             </div>

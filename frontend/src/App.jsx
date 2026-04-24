@@ -17,6 +17,7 @@ import RegisterEmpresa from './pages/auth/RegisterEmpresa'
 import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
 import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
+import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
 import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
 import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
 
@@ -85,6 +86,12 @@ function AppRoutes() {
             <Route path="/devoluciones/solicitar/:pedidoId" element={
               <ProtectedRoute roles={['cliente']}>
                 <SolicitudDevolucionPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/mis-devoluciones" element={
+              <ProtectedRoute roles={['cliente']}>
+                <MisDevolucionesPage />
               </ProtectedRoute>
             } />
 

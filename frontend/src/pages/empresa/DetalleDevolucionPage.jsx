@@ -11,6 +11,7 @@ export default function DetalleDevolucionPage() {
   const [error, setError] = useState(null)
   const [procesando, setProcesando] = useState(false)
   const [mensajeExito, setMensajeExito] = useState(null)
+  const [respuestaEmpresa, setRespuestaEmpresa] = useState('')
 
   useEffect(() => {
     cargarDetalleDevolucion()
@@ -32,7 +33,10 @@ export default function DetalleDevolucionPage() {
   const actualizarEstado = async (nuevoEstado) => {
     try {
       setProcesando(true)
-      await api.put(`/devoluciones/${id}/estado`, { estado: nuevoEstado })
+      await api.post(`/devoluciones/${id}/estado`, { 
+        estado: nuevoEstado,
+        respuesta_empresa: respuestaEmpresa || undefined
+      })
       
       setMensajeExito(
         nuevoEstado === 'aprobada' 
@@ -40,10 +44,10 @@ export default function DetalleDevolucionPage() {
           : 'Devolución rechazada.'
       )
       
-      // Actualizar la vista después de 2 segundos
+      // Actualizar la vista después de 5 segundos
       setTimeout(() => {
         navigate('/empresa/devoluciones')
-      }, 2000)
+      }, 5000)
     } catch (err) {
       console.error('Error actualizando estado:', err)
       setError('No se pudo actualizar el estado de la devolución')
@@ -64,12 +68,12 @@ export default function DetalleDevolucionPage() {
 
   const getEstadoColor = (estado) => {
     const colores = {
-      'solicitada': 'bg-yellow-100 text-yellow-800',
-      'en_revision': 'bg-blue-100 text-blue-800',
-      'aprobada': 'bg-green-100 text-green-800',
-      'rechazada': 'bg-red-100 text-red-800'
+      'solicitada': 'bg-yellow-400 text-yellow-900 border-2 border-yellow-600',
+      'en_revision': 'bg-blue-400 text-blue-900 border-2 border-blue-600',
+      'aprobada': 'bg-green-400 text-green-900 border-2 border-green-600',
+      'rechazada': 'bg-red-400 text-red-900 border-2 border-red-600'
     }
-    return colores[estado] || 'bg-gray-100 text-gray-800'
+    return colores[estado] || 'bg-gray-400 text-gray-900 border-2 border-gray-600'
   }
 
   if (loading) {
@@ -91,14 +95,14 @@ export default function DetalleDevolucionPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-4xl mx-auto px-4 py-8 pt-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div>
             <button
               onClick={() => navigate('/empresa/devoluciones')}
@@ -113,7 +117,10 @@ export default function DetalleDevolucionPage() {
               Solicitud de Devolución #{devolucion.id}
             </h1>
           </div>
-          <span className={`px-4 py-2 rounded-full text-sm font-medium ${getEstadoColor(devolucion.estado)}`}>
+          <span 
+            className={`px-4 py-2 rounded-full text-sm font-bold shadow self-start sm:self-center relative ${getEstadoColor(devolucion.estado)}`}
+            style={{ textTransform: 'uppercase', letterSpacing: '0.5px', zIndex: 100 }}
+          >
             {devolucion.estado}
           </span>
         </div>
@@ -251,13 +258,25 @@ export default function DetalleDevolucionPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block group"
+                  title="Haz clic para ver en tamaño completo"
                 >
-                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-purple-500 transition-all">
                     <img
                       src={evidencia.cloudinary_url}
                       alt="Evidencia de devolución"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextSibling.style.display = 'flex'
+                      }}
                     />
+                    <div 
+                      className="absolute inset-0 hidden flex-col items-center justify-center bg-gray-50 text-gray-400"
+                      style={{ display: 'none' }}
+                    >
+                      <span className="text-4xl mb-2">📷</span>
+                      <span className="text-xs text-center px-2">Imagen no disponible<br/>Haz clic para ver</span>
+                    </div>
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
                       <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
                         Ver en tamaño completo
@@ -274,11 +293,34 @@ export default function DetalleDevolucionPage() {
         {devolucion.estado === 'solicitada' && (
           <div className="bg-white rounded-xl shadow-sm border p-6 mt-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones</h2>
+            
+            {/* Campo para respuesta de la empresa */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mensaje para el cliente (opcional)
+              </label>
+              <textarea
+                value={respuestaEmpresa}
+                onChange={(e) => setRespuestaEmpresa(e.target.value)}
+                placeholder="Ej: Razón del rechazo, instrucciones para el retorno, etc."
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Este mensaje será visible para el cliente junto con la decisión de la devolución.
+              </p>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => actualizarEstado('aprobada')}
                 disabled={procesando}
-                className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ 
+                  backgroundColor: '#16a34a', 
+                  color: 'white',
+                  border: '2px solid #15803d'
+                }}
+                className="flex-1 py-3 px-6 rounded-lg font-semibold shadow hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {procesando ? (
                   <>
@@ -297,7 +339,12 @@ export default function DetalleDevolucionPage() {
               <button
                 onClick={() => actualizarEstado('rechazada')}
                 disabled={procesando}
-                className="flex-1 bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ 
+                  backgroundColor: '#dc2626', 
+                  color: 'white',
+                  border: '2px solid #b91c1c'
+                }}
+                className="flex-1 py-3 px-6 rounded-lg font-semibold shadow hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {procesando ? (
                   <>
@@ -316,6 +363,18 @@ export default function DetalleDevolucionPage() {
             </div>
             <p className="text-sm text-gray-500 mt-4 text-center">
               Al aprobar, el pedido cambiará automáticamente al estado "en devolución"
+            </p>
+          </div>
+        )}
+
+        {/* Mostrar respuesta de la empresa si existe y ya está procesada */}
+        {(devolucion.estado === 'aprobada' || devolucion.estado === 'rechazada') && devolucion.respuesta_empresa && (
+          <div className="bg-purple-50 rounded-xl shadow-sm border border-purple-200 p-6 mt-6">
+            <h2 className="text-lg font-semibold text-purple-900 mb-2 flex items-center gap-2">
+              <span>💬</span> Mensaje de la empresa
+            </h2>
+            <p className="text-purple-800 italic">
+              "{devolucion.respuesta_empresa}"
             </p>
           </div>
         )}
