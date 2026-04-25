@@ -15,3 +15,10 @@ dist/
 .DS_Store
 Thumbs.db
 .claude
+
+# Scripts temporales de desarrollo (no subir a GitHub)
+backend/eliminar_dev*.py
+backend/fix_estados.py
+backend/regenerar_pedidos_nefer.py
+backend/verificar_pedidos.py
+backend/aplicar_cambios_db.py

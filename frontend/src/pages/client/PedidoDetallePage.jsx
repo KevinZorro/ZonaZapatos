@@ -11,6 +11,33 @@ const ESTADOS_PEDIDO = {
   cancelado:  { label: 'Cancelado',  classes: 'bg-red-50 text-red-600',      descripcion: 'Este pedido fue cancelado. Contáctanos si tienes alguna duda.' },
 }
 
+const ESTADOS_DEVOLUCION = {
+  solicitada: { 
+    label: 'Solicitada', 
+    classes: 'bg-yellow-50 text-yellow-700',
+    descripcion: 'Tu solicitud de devolución ha sido recibida y está siendo revisada.'
+  },
+  en_revision: { 
+    label: 'En revisión', 
+    classes: 'bg-blue-50 text-blue-700',
+    descripcion: 'Estamos evaluando tu solicitud y las evidencias proporcionadas.'
+  },
+  aprobada: { 
+    label: 'Aprobada', 
+    classes: 'bg-green-50 text-green-700',
+    descripcion: 'Tu devolución ha sido aprobada. Procederemos con el reembolso.'
+  },
+  rechazada: { 
+    label: 'Rechazada', 
+    classes: 'bg-red-50 text-red-600',
+    descripcion: 'Tu solicitud de devolución no ha sido aprobada.'
+  }
+}
+
+function getEstadoDevolucion(estado) {
+  return ESTADOS_DEVOLUCION[estado] || { label: estado, classes: 'bg-gray-100 text-gray-500', descripcion: '' }
+}
+
 function formatPrice(price) {
   return new Intl.NumberFormat('es-CO', {
     style: 'currency', currency: 'COP', minimumFractionDigits: 0
@@ -25,21 +52,43 @@ export default function PedidoDetallePage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [pedido, setPedido] = useState(null)
+  const [devolucion, setDevolucion] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const fetchPedido = async () => {
+    const fetchData = async () => {
       try {
-        const { data } = await api.get(`/pedidos/${id}`)
-        setPedido(data)
+        // Fetch pedido
+        const { data: pedidoData } = await api.get(`/pedidos/${id}`)
+        setPedido(pedidoData)
+
+        // Fetch devolución si existe
+        try {
+          const { data: devolucionData } = await api.get(`/devoluciones/pedido/${id}`)
+          if (devolucionData) {
+            console.log('Devolución cargada:', devolucionData)
+            setDevolucion(devolucionData)
+          }
+          // Si es null, no hay devolución - es normal, no hacer nada
+        } catch (devErr) {
+          // Solo manejar errores reales (401, 500+)
+          if (devErr.response?.status === 401) {
+            console.error('Error de autenticación al cargar devolución:', devErr)
+            setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
+          } else if (devErr.response?.status >= 500) {
+            console.error('Error del servidor al cargar devolución:', devErr)
+            setError('Error temporal del servidor. Por favor intenta más tarde.')
+          }
+          // Otros errores los ignoramos - no hay devolución
+        }
       } catch (err) {
         setError(err.response?.data?.detail || 'No se pudo cargar el pedido')
       } finally {
         setLoading(false)
       }
     }
-    fetchPedido()
+    fetchData()
   }, [id])
 
   if (loading) return (
@@ -216,6 +265,81 @@ export default function PedidoDetallePage() {
             <span className="text-xl font-black text-gray-900">{formatPrice(pedido.total)}</span>
           </div>
         </motion.div>
+
+        {/* Estado de devolución */}
+        {devolucion && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white border border-gray-200 rounded-2xl overflow-hidden mt-4"
+          >
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    Estado de devolución
+                  </h3>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${getEstadoDevolucion(devolucion.estado).classes}`}>
+                      {getEstadoDevolucion(devolucion.estado).label}
+                    </span>
+                    <div className="relative group">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center cursor-help text-[11px] font-black border ${getEstadoDevolucion(devolucion.estado).classes} opacity-70`}>
+                        ?
+                      </div>
+                      <div className="absolute left-0 top-7 z-10 w-56 bg-gray-900 text-white text-xs rounded-xl p-3 leading-relaxed shadow-lg invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200">
+                        {getEstadoDevolucion(devolucion.estado).descripcion}
+                        <div className="absolute -top-1.5 left-2 w-3 h-3 bg-gray-900 rotate-45" />
+                      </div>
+                    </div>
+                  </div>
+                  {devolucion.motivo && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      Motivo: {devolucion.motivo}
+                    </p>
+                  )}
+                  {devolucion.fecha_solicitud && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Solicitada el: {new Date(devolucion.fecha_solicitud).toLocaleDateString('es-CO', {
+                      day: '2-digit', month: 'long', year: 'numeric'
+                    })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Botón de devolución - solo para pedidos entregados sin devolución activa */}
+        {pedido.estado === 'entregado' && !devolucion && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white border border-gray-200 rounded-2xl overflow-hidden mt-4"
+          >
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                    ¿Tienes algún problema con tu pedido?
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Puedes solicitar una devolución si el producto no cumple con tus expectativas
+                  </p>
+                </div>
+                <Link
+                  to={`/devoluciones/solicitar/${pedido.id}`}
+                  className="px-6 py-2.5 bg-red-600 text-white text-sm font-bold rounded-full hover:bg-red-700 transition-colors duration-200"
+                >
+                  Solicitar Devolución
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
       </div>
     </div>

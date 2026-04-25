@@ -38,6 +38,9 @@ export default function Navbar() {
           <NavLink to="/empresa/productos" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
             Mis Productos
           </NavLink>
+          <NavLink to="/empresa/devoluciones" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
+            Devoluciones
+          </NavLink>
           <NavLink to="/empresa/dashboard" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
             Dashboard
           </NavLink>
@@ -48,6 +51,9 @@ export default function Navbar() {
         <>
           <NavLink to="/pedidos" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
             Mis Pedidos
+          </NavLink>
+          <NavLink to="/mis-devoluciones" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
+            Mis Devoluciones
           </NavLink>
 
           <NavLink to="/carrito" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}

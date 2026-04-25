@@ -17,6 +17,10 @@ import RegisterCliente from './pages/auth/RegisterCliente'
 import RegisterEmpresa from './pages/auth/RegisterEmpresa'
 import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
+import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
+import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
+import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
+import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
 
 import './App.css'
 
@@ -80,6 +84,18 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
 
+            <Route path="/devoluciones/solicitar/:pedidoId" element={
+              <ProtectedRoute roles={['cliente']}>
+                <SolicitudDevolucionPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/mis-devoluciones" element={
+              <ProtectedRoute roles={['cliente']}>
+                <MisDevolucionesPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="/carrito" element={
               <ProtectedRoute roles={['cliente']}>
                 <CarritoPage />
@@ -105,6 +121,16 @@ function AppRoutes() {
             <Route path="/empresa/analisis" element={
               <ProtectedRoute roles={['empresa']}>
                 <Placeholder title="Análisis y Predicción" />
+              </ProtectedRoute>
+            } />
+            <Route path="/empresa/devoluciones" element={
+              <ProtectedRoute roles={['empresa']}>
+                <GestionDevolucionesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/empresa/devoluciones/:id" element={
+              <ProtectedRoute roles={['empresa']}>
+                <DetalleDevolucionPage />
               </ProtectedRoute>
             } />
 

@@ -31,8 +31,19 @@ const ESTADOS_PEDIDO = {
   },
 }
 
+const ESTADOS_DEVOLUCION = {
+  solicitada: { label: 'Solicitada', classes: 'bg-yellow-50 text-yellow-700', icon: '🔄' },
+  en_revision: { label: 'En revisión', classes: 'bg-blue-50 text-blue-700', icon: '👁️' },
+  aprobada: { label: 'Aprobada', classes: 'bg-green-50 text-green-700', icon: '✅' },
+  rechazada: { label: 'Rechazada', classes: 'bg-red-50 text-red-600', icon: '❌' }
+}
+
 function getEstado(estado) {
   return ESTADOS_PEDIDO[estado] || { label: estado, classes: 'bg-gray-100 text-gray-500' }
+}
+
+function getEstadoDevolucion(estado) {
+  return ESTADOS_DEVOLUCION[estado] || null
 }
 
 function formatPrice(price) {
@@ -43,8 +54,9 @@ function formatPrice(price) {
   }).format(price)
 }
 
-function PedidoCard({ pedido, index }) {
+function PedidoCard({ pedido, index, devolucion }) {
   const estado = getEstado(pedido.estado)
+  const estadoDev = devolucion ? getEstadoDevolucion(devolucion.estado) : null
 
   // Primera imagen de cada item
   const getImagen = (item) =>
@@ -79,6 +91,13 @@ function PedidoCard({ pedido, index }) {
               {/* Estado del pedido */}
               <span className='text-md font-bold'>Estado del pedido: </span>
               <span className={`text-md font-bold px-3 py-1 rounded-full ${estado.classes}`}> {estado.label}</span>
+              
+              {/* Badge de devolución */}
+              {estadoDev && (
+                <span className={`ml-2 text-xs font-bold px-2 py-1 rounded-full ${estadoDev.classes} border`}>
+                  {estadoDev.icon} Devolución {estadoDev.label}
+                </span>
+              )}
             </div>
 
           {/* Fechas del pedido */}
@@ -167,12 +186,41 @@ function PedidoCard({ pedido, index }) {
 
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState([])
+  const [devoluciones, setDevoluciones] = useState({})
   const [loading, setLoading] = useState(true)
 
   const fetchPedidos = useCallback(async () => {
     try {
-      const { data } = await api.get('/clientes/pedidos')
-      Array.isArray(data) ? setPedidos(data) : setPedidos([])
+      // Fetch pedidos
+      const { data: pedidosData } = await api.get('/clientes/pedidos')
+      Array.isArray(pedidosData) ? setPedidos(pedidosData) : setPedidos([])
+      
+      // Fetch devoluciones para cada pedido
+      const devolucionesMap = {}
+      if (Array.isArray(pedidosData)) {
+        await Promise.all(
+          pedidosData.map(async (pedido) => {
+            try {
+              const { data: devData } = await api.get(`/devoluciones/pedido/${pedido.id}`)
+              // Solo guardar si hay devolución (data no es null)
+              if (devData) {
+                devolucionesMap[pedido.id] = devData
+              }
+            } catch (err) {
+              // Solo loguear errores reales (no 404 ahora que retornamos null)
+              if (err.response?.status === 401) {
+                console.error('Error de autenticación al cargar devolución:', err)
+                setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
+              } else if (err.response?.status >= 500) {
+                console.error('Error del servidor al cargar devolución:', err)
+                setError('Error temporal del servidor. Por favor intenta más tarde.')
+              }
+              // Otros errores los ignoramos silenciosamente
+            }
+          })
+        )
+      }
+      setDevoluciones(devolucionesMap)
     } catch (err) {
       console.error(err)
       setPedidos([])
@@ -219,7 +267,12 @@ return (
           <br />
           <div className="flex flex-col gap-4">
             {pedidos.map((pedido, i) => (
-              <PedidoCard key={pedido.id} pedido={pedido} index={i} />
+              <PedidoCard 
+                key={pedido.id} 
+                pedido={pedido} 
+                index={i} 
+                devolucion={devoluciones[pedido.id]}
+              />
             ))}
           </div>
         </div>
