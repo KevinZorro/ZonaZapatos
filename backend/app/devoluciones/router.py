@@ -290,12 +290,8 @@ async def obtener_devolucion_por_pedido(
     ).first()
     
     if not devolucion:
-        # Retornar 404 con un mensaje claro para que el frontend pueda manejarlo
-        from fastapi import status
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail="Este pedido no tiene solicitud de devolución"
-        )
+        # Retornar null en lugar de 404 para evitar errores en consola del navegador
+        return None
     
     # Retornar respuesta simple sin serialización compleja
     return {

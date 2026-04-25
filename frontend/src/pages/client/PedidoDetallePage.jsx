@@ -63,28 +63,25 @@ export default function PedidoDetallePage() {
         const { data: pedidoData } = await api.get(`/pedidos/${id}`)
         setPedido(pedidoData)
 
-        // Fetch devolución si existe - TEMPORALMENTE COMENTADO
-        // try {
-        //   const { data: devolucionData } = await api.get(`/devoluciones/pedido/${id}`)
-        //   console.log('Devolución cargada:', devolucionData)
-        //   setDevolucion(devolucionData)
-        // } catch (devErr) {
-        //   // Si no hay devolución, es normal (404)
-        //   if (devErr.response?.status === 404) {
-        //     console.log('No hay devolución para este pedido (404)')
-        //     // Es normal que no haya devolución, no mostrar error
-        //   } else if (devErr.response?.status === 401) {
-        //     console.error('Error de autenticación al cargar devolución:', devErr)
-        //     setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
-        //   } else if (devErr.response?.status >= 500) {
-        //     console.error('Error del servidor al cargar devolución:', devErr)
-        //     setError('Error temporal del servidor. Por favor intenta más tarde.')
-        //   } else {
-        //     console.error('Error al cargar devolución:', devErr)
-        //     console.error('Response:', devErr.response)
-        //     setError('Error al cargar información de devolución.')
-        //   }
-        // }
+        // Fetch devolución si existe
+        try {
+          const { data: devolucionData } = await api.get(`/devoluciones/pedido/${id}`)
+          if (devolucionData) {
+            console.log('Devolución cargada:', devolucionData)
+            setDevolucion(devolucionData)
+          }
+          // Si es null, no hay devolución - es normal, no hacer nada
+        } catch (devErr) {
+          // Solo manejar errores reales (401, 500+)
+          if (devErr.response?.status === 401) {
+            console.error('Error de autenticación al cargar devolución:', devErr)
+            setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
+          } else if (devErr.response?.status >= 500) {
+            console.error('Error del servidor al cargar devolución:', devErr)
+            setError('Error temporal del servidor. Por favor intenta más tarde.')
+          }
+          // Otros errores los ignoramos - no hay devolución
+        }
       } catch (err) {
         setError(err.response?.data?.detail || 'No se pudo cargar el pedido')
       } finally {
