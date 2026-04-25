@@ -20,9 +20,28 @@ function formatPrice(price) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(price)
 }
 
+function StarRatingMini({ rating, total = 0 }) {
+  if (!rating || rating === 0) {
+    return (
+      <div className="prod-card__stars prod-card__stars--empty">
+        <span className="prod-card__star prod-card__star--empty">★</span>
+        <span className="prod-card__rating">Sin reseñas</span>
+      </div>
+    )
+  }
+  return (
+    <div className="prod-card__stars">
+      <span className="prod-card__star">★</span>
+      <span className="prod-card__rating">{rating.toFixed(1)}</span>
+      <span className="prod-card__count">({total})</span>
+    </div>
+  )
+}
+
 function ProductCard({ product, index }) {
   const estado = getEstado(product.estado)
   const imagen = product.media?.find(m => m.tipo === 'imagen')?.cloudinary_url
+  const promedio = product.promedio_resenas || 0
 
   return (
     <motion.div
@@ -43,6 +62,12 @@ function ProductCard({ product, index }) {
           {product.stock <= 5 && product.stock > 0 && (
             <span className="prod-card__badge prod-card__badge--stock">Últimas {product.stock}</span>
           )}
+          {/* Indicador de reseñas */}
+          {promedio > 0 && (
+            <div className="prod-card__rating-badge">
+              <span>★</span> {promedio.toFixed(1)}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -62,7 +87,7 @@ function ProductCard({ product, index }) {
 
           <div className="prod-card__footer">
             <span className="prod-card__price">{formatPrice(product.precio)}</span>
-            <span className="prod-card__cta">Ver →</span>
+            <StarRatingMini rating={promedio} total={product.total_resenas || 0} />
           </div>
         </div>
       </Link>

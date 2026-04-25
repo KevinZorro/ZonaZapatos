@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import api from '../services/api'
+import { getEncuestaPendiente } from '../services/encuestas'
 
 const AuthContext = createContext(null)
 
@@ -12,6 +13,25 @@ export function AuthProvider({ children }) {
   })
 
   const [token, setToken] = useState(() => localStorage.getItem('zz_token') || null)
+  const [encuestaPendiente, setEncuestaPendiente] = useState(null)
+
+  const checkEncuestaPendiente = useCallback(async () => {
+    if (!token || !user || user.rol !== 'cliente') {
+      setEncuestaPendiente(null)
+      return
+    }
+
+    try {
+      const encuesta = await getEncuestaPendiente()
+      setEncuestaPendiente(encuesta)
+    } catch {
+      setEncuestaPendiente(null)
+    }
+  }, [token, user])
+
+  const clearEncuestaPendiente = useCallback(() => {
+    setEncuestaPendiente(null)
+  }, [])
 
   const login = useCallback(async (correo, password) => {
     const params = new URLSearchParams()
@@ -38,13 +58,28 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('zz_user')
       setToken(null)
       setUser(null)
+      setEncuestaPendiente(null)
     }
   }, [])
 
   const isAuthenticated = Boolean(token)
 
+  // Verificar encuesta pendiente cuando cambia el token o usuario
+  useEffect(() => {
+    checkEncuestaPendiente()
+  }, [checkEncuestaPendiente])
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated }}>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      login,
+      logout,
+      isAuthenticated,
+      encuestaPendiente,
+      clearEncuestaPendiente,
+      checkEncuestaPendiente,
+    }}>
       {children}
     </AuthContext.Provider>
   )

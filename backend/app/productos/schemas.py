@@ -1,5 +1,7 @@
 """Productos schemas — Pydantic models for request/response."""
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, field_serializer
 
 
 class CategoriaOut(BaseModel):
@@ -33,6 +35,8 @@ class ProductoOut(BaseModel):
     modelo_3d_url: str | None = None
     categorias: list[CategoriaOut] = []
     media: list[MediaArchivoOut] = []
+    promedio_resenas: float = 0
+    total_resenas: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -71,3 +75,30 @@ class ProductoListResponse(BaseModel):
     page: int
     page_size: int
     items: list[ProductoOut]
+
+
+class ClienteResenaOut(BaseModel):
+    id: int
+    nombre: str
+    avatar_url: str | None = None
+    inicial: str  # Primera letra del nombre para mostrar si no hay avatar
+
+    model_config = {"from_attributes": True}
+
+
+class ResenaOut(BaseModel):
+    id: int
+    calificacion: int
+    comentario: str | None = None
+    respondida_en: str | None = None
+    pedido_id: int
+    cliente: ClienteResenaOut | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ResenasSummary(BaseModel):
+    promedio: float
+    total: int
+    distribucion: dict[int, int]  # {1: count, 2: count, ...}
+    resenas: list[ResenaOut]

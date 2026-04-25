@@ -15,6 +15,7 @@ class EncuestaSatisfaccion(Base):
     comentario = Column(Text, nullable=True)
     respondida = Column(Boolean, default=False, nullable=False)
     omitida = Column(Boolean, default=False, nullable=False)
+    recordatorio_activo = Column(Boolean, default=False, nullable=False)
     enviada_en = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -24,5 +25,9 @@ class EncuestaSatisfaccion(Base):
     pedido_id = Column(
         Integer, ForeignKey("pedidos.id", ondelete="CASCADE"), unique=True, nullable=False
     )
+    producto_id = Column(
+        Integer, ForeignKey("productos.id", ondelete="SET NULL"), nullable=True
+    )
 
     pedido = relationship("Pedido", back_populates="encuesta")
+    producto = relationship("Producto", back_populates="encuestas")

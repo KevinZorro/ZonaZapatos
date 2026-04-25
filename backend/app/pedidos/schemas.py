@@ -41,5 +41,6 @@ class PedidoOut(BaseModel):
     total: float
     canal_contacto: str
     items: list[ItemPedidoOut] = []
+    encuesta_id: int | None = None
 
     model_config = {"from_attributes": True}

@@ -1,0 +1,122 @@
+.encuesta-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.encuesta-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.encuesta-modal-header {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.encuesta-modal-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.encuesta-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.encuesta-modal-body {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.encuesta-modal-body p {
+  color: #4b5563;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.encuesta-modal-body strong {
+  color: #0d9488;
+}
+
+.encuesta-modal-subtext {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.encuesta-modal-reminder {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.encuesta-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.encuesta-modal-btn {
+  padding: 0.875rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  width: 100%;
+}
+
+.encuesta-modal-btn--primary {
+  background: #0d9488;
+  color: white;
+}
+
+.encuesta-modal-btn--primary:hover {
+  background: #0f766e;
+}
+
+.encuesta-modal-btn--secondary {
+  background: transparent;
+  color: #6b7280;
+  border: 2px solid #e5e7eb;
+}
+
+.encuesta-modal-btn--secondary:hover {
+  border-color: #0d9488;
+  color: #0d9488;
+}
+
+@media (max-width: 480px) {
+  .encuesta-modal {
+    margin: 1rem;
+  }
+
+  .encuesta-modal-icon {
+    font-size: 2.5rem;
+  }
+
+  .encuesta-modal-header h2 {
+    font-size: 1.125rem;
+  }
+}

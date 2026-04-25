@@ -86,6 +86,7 @@ class Producto(Base):
         "MediaArchivo", back_populates="producto", cascade="all, delete-orphan"
     )
     items_pedido = relationship("ItemPedido", back_populates="producto")
+    encuestas = relationship("EncuestaSatisfaccion", back_populates="producto")
 
 
 class MediaArchivo(Base):
