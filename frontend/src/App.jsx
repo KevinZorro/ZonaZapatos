@@ -10,6 +10,7 @@ import CatalogPage from './pages/CatalogPage'
 import ProductPage from './pages/ProductPage'
 import PedidosPage from './pages/client/PedidosPage'
 import PedidoDetallePage from './pages/client/PedidoDetallePage'
+import CarritoPage from './pages/client/CarritoPage'
 import ProfilePage from './pages/ProfilePage'
 import Login from './pages/auth/Login'
 import RegisterCliente from './pages/auth/RegisterCliente'
@@ -92,6 +93,12 @@ function AppRoutes() {
             <Route path="/mis-devoluciones" element={
               <ProtectedRoute roles={['cliente']}>
                 <MisDevolucionesPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/carrito" element={
+              <ProtectedRoute roles={['cliente']}>
+                <CarritoPage />
               </ProtectedRoute>
             } />
 

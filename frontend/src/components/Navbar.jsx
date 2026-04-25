@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
+import { useCarrito } from '../context/CarritoContext'
 import './Navbar.css'
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
+  const { totalItems } = useCarrito()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -52,6 +54,32 @@ export default function Navbar() {
           </NavLink>
           <NavLink to="/mis-devoluciones" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
             Mis Devoluciones
+          </NavLink>
+
+          <NavLink to="/carrito" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}
+            style={{ position: 'relative' }}
+          >
+            Carrito
+            {totalItems > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-6px',
+                right: '-10px',
+                background: 'var(--magenta)',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 800,
+                width: '16px',
+                height: '16px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: 1,
+              }}>
+                {totalItems > 9 ? '9+' : totalItems}
+              </span>
+            )}
           </NavLink>
         </>
       )}
