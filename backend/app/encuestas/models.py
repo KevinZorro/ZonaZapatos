@@ -1,7 +1,7 @@
 """Encuestas module — EncuestaSatisfaccion ORM model."""
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -9,6 +9,11 @@ from app.core.database import Base
 
 class EncuestaSatisfaccion(Base):
     __tablename__ = "encuestas_satisfaccion"
+
+    # Constraint único por combinación pedido + producto
+    __table_args__ = (
+        UniqueConstraint('pedido_id', 'producto_id', name='unique_pedido_producto'),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     calificacion = Column(Integer, nullable=True)  # 1-5
@@ -23,10 +28,10 @@ class EncuestaSatisfaccion(Base):
     )
     respondida_en = Column(DateTime(timezone=True), nullable=True)
     pedido_id = Column(
-        Integer, ForeignKey("pedidos.id", ondelete="CASCADE"), unique=True, nullable=False
+        Integer, ForeignKey("pedidos.id", ondelete="CASCADE"), nullable=False
     )
     producto_id = Column(
-        Integer, ForeignKey("productos.id", ondelete="SET NULL"), nullable=True
+        Integer, ForeignKey("productos.id", ondelete="SET NULL"), nullable=False
     )
 
     pedido = relationship("Pedido", back_populates="encuesta")

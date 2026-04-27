@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     })
 
     localStorage.setItem('zz_token', data.access_token)
-    const userData = { correo, rol: data.rol }
+    const userData = { correo, rol: data.rol, cliente_id: data.cliente_id }
     localStorage.setItem('zz_user', JSON.stringify(userData))
     setToken(data.access_token)
     setUser(userData)

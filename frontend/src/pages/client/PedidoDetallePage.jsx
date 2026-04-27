@@ -360,11 +360,11 @@ export default function PedidoDetallePage() {
           try {
             const { data: encuestasRespondidasData } = await api.get(`/encuestas/pedido/${id}/respondidas`)
             console.log('Encuestas respondidas cargadas:', encuestasRespondidasData)
-            if (encuestasRespondidasData && encuestasRespondidasData.length > 0) {
-              setEncuestasRespondidas(encuestasRespondidasData)
-            }
+            // Actualizar siempre el estado, incluso si está vacío
+            setEncuestasRespondidas(encuestasRespondidasData || [])
           } catch (encErr) {
             console.log('No hay encuestas respondidas o error:', encErr)
+            setEncuestasRespondidas([])
           }
         }
       } catch (err) {
@@ -650,8 +650,8 @@ export default function PedidoDetallePage() {
               </motion.div>
             )}
 
-            {/* Mensaje cuando no hay reseñas pendientes pero hay completadas */}
-            {encuestasPendientes.length === 0 && encuestasRespondidas.length > 0 && (
+            {/* Mensaje cuando hay reseñas completadas */}
+            {encuestasRespondidas.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -715,8 +715,8 @@ export default function PedidoDetallePage() {
                               <div className="flex-1">
                                 <p className="font-medium text-gray-800">{encuesta.producto?.nombre || `Producto #${encuesta.producto_id}`}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-yellow-400">{'★'.repeat(encuesta.calificacion)}{'☆'.repeat(5 - encuesta.calificacion)}</span>
-                                  <span className="text-sm text-gray-600">({encuesta.calificacion}/5)</span>
+                                  <span className="text-yellow-400">{'★'.repeat(encuesta.calificacion || 0)}{'☆'.repeat(5 - (encuesta.calificacion || 0))}</span>
+                                  <span className="text-sm text-gray-600">({encuesta.calificacion || 0}/5)</span>
                                 </div>
                                 {encuesta.comentario && (
                                   <p className="text-sm text-gray-600 mt-2 italic">"{encuesta.comentario}"</p>

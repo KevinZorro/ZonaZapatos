@@ -92,6 +92,7 @@ class ResenaOut(BaseModel):
     comentario: str | None = None
     respondida_en: str | None = None
     pedido_id: int
+    cliente_id: int | None = None  # ID del cliente autor de la reseña
     cliente: ClienteResenaOut | None = None
 
     model_config = {"from_attributes": True}

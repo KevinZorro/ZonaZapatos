@@ -228,6 +228,7 @@ def get_producto_resenas(
                 comentario=e.comentario,
                 respondida_en=e.respondida_en.isoformat() if e.respondida_en else None,
                 pedido_id=e.pedido_id,
+                cliente_id=cliente.id if cliente else None,
                 cliente=cliente_data,
             )
         )
