@@ -284,8 +284,10 @@ async def obtener_devolucion_por_pedido(
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
     
-    # Buscar la devolución
-    devolucion = db.query(Devolucion).filter(
+    # Buscar la devolución con sus items y item_pedido relacionado (eager loading)
+    devolucion = db.query(Devolucion).options(
+        joinedload(Devolucion.items).joinedload(ItemDevolucion.item_pedido)
+    ).filter(
         Devolucion.pedido_id == pedido_id
     ).first()
     
@@ -293,13 +295,29 @@ async def obtener_devolucion_por_pedido(
         # Retornar null en lugar de 404 para evitar errores en consola del navegador
         return None
     
-    # Retornar respuesta simple sin serialización compleja
+    # Construir lista de items devueltos
+    items_devueltos = []
+    for item in devolucion.items:
+        items_devueltos.append({
+            "id": item.id,
+            "producto_nombre": item.producto_nombre or "Producto desconocido",
+            "producto_sku": item.producto_sku or "N/A",
+            "producto_imagen_url": item.producto_imagen_url,
+            "cantidad": item.cantidad,
+            "motivo": item.motivo,
+            "comentario": item.comentario,
+            "precio_unitario": item.item_pedido.precio_unitario if item.item_pedido else 0
+        })
+    
+    # Retornar respuesta con los items de la devolución
     return {
         "id": devolucion.id,
         "motivo": devolucion.motivo,
         "comentario": devolucion.comentario,
         "estado": devolucion.estado.value if hasattr(devolucion.estado, 'value') else str(devolucion.estado),
-        "pedido_id": devolucion.pedido_id
+        "pedido_id": devolucion.pedido_id,
+        "items": items_devueltos,
+        "fecha_solicitud": devolucion.fecha_solicitud.isoformat() if devolucion.fecha_solicitud else None
     }
 
 @router.get("/mis-devoluciones", response_model=List[DevolucionClienteOut])
@@ -531,8 +549,10 @@ async def obtener_detalle_devolucion_empresa(
     if current_user_rol != "empresa":
         raise HTTPException(status_code=403, detail="No autorizado")
     
-    # Buscar la devolución
-    devolucion = db.query(Devolucion).filter(Devolucion.id == devolucion_id).first()
+    # Buscar la devolución con sus items y item_pedido relacionado (eager loading)
+    devolucion = db.query(Devolucion).options(
+        joinedload(Devolucion.items).joinedload(ItemDevolucion.item_pedido)
+    ).filter(Devolucion.id == devolucion_id).first()
     if not devolucion:
         raise HTTPException(status_code=404, detail="Devolución no encontrada")
     
@@ -564,18 +584,25 @@ async def obtener_detalle_devolucion_empresa(
         ) for ev in evidencias
     ]
     
-    # Construir productos desde el snapshot inmutable (RF10)
+    # Construir productos desde los items de la devolución (solo los seleccionados)
     productos_snapshot = []
-    for item in pedido.items:
-        # Usar solo el snapshot guardado en ItemPedido (datos históricos inmutables)
-        # No accedemos al producto actual porque puede haber cambiado
+    for item in devolucion.items:
+        # Cada item en devolucion.items es un ItemDevolucion con datos snapshot
+        # Obtener descripción del producto actual o del item_pedido relacionado
+        descripcion = ""
+        precio_unitario = 0
+        if item.item_pedido:
+            descripcion = item.item_pedido.producto_descripcion_snapshot or ""
+            precio_unitario = item.item_pedido.precio_unitario or 0
         productos_snapshot.append({
-            "nombre": item.producto_nombre_snapshot or (item.producto.nombre if item.producto else "Producto desconocido"),
-            "sku": item.producto_sku_snapshot or "N/A",
-            "descripcion": item.producto_descripcion_snapshot or (item.producto.descripcion if item.producto else ""),
-            "imagen_url": item.producto_imagen_url_snapshot,  # Solo usar snapshot, no el producto actual
+            "nombre": item.producto_nombre or "Producto desconocido",
+            "sku": item.producto_sku or "N/A",
+            "descripcion": descripcion,
+            "imagen_url": item.producto_imagen_url,
             "cantidad": item.cantidad,
-            "precio_unitario": item.precio_unitario
+            "precio_unitario": precio_unitario,
+            "motivo": item.motivo,
+            "comentario": item.comentario
         })
     
     # Construir respuesta
@@ -591,7 +618,7 @@ async def obtener_detalle_devolucion_empresa(
             "estado": pedido.estado.value,
             "fecha_pedido": pedido.fecha_pedido,
             "total": pedido.total,
-            "productos": productos_snapshot
+            "productos": productos_snapshot  # Productos específicos de esta devolución
         },
         "cliente": {
             "id": cliente.id,

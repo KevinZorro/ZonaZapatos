@@ -47,16 +47,33 @@ export default function SolicitudDevolucionPage() {
         const { data } = await api.get(`/pedidos/${pedidoId}`)
         setPedido(data)
         // Inicializar selectedItems con todos los productos del pedido (no seleccionados)
-        const initialItems = data.items?.map(item => ({
-          item_pedido_id: item.id,
-          producto_nombre: item.producto_nombre || 'Producto',
-          producto_imagen_url: item.producto_imagen_url,
-          cantidad_comprada: item.cantidad,
-          cantidad_a_devolver: 1,
-          seleccionado: false,
-          motivo: '',
-          comentario: ''
-        })) || []
+        // Buscar el nombre del producto en múltiples campos posibles (snapshot o relación)
+        const initialItems = data.items?.map(item => {
+          // Intentar obtener el nombre de varias fuentes posibles
+          const nombreProducto = item.producto_nombre_snapshot 
+            || item.producto_nombre 
+            || item.producto?.nombre 
+            || item.nombre_producto 
+            || 'Producto sin nombre'
+          
+          // Intentar obtener la imagen de varias fuentes posibles
+          const imagenProducto = item.producto_imagen_url_snapshot
+            || item.producto_imagen_url
+            || item.producto?.imagen_url
+            || item.imagen_url
+            || null
+          
+          return {
+            item_pedido_id: item.id,
+            producto_nombre: nombreProducto,
+            producto_imagen_url: imagenProducto,
+            cantidad_comprada: item.cantidad,
+            cantidad_a_devolver: 1,
+            seleccionado: false,
+            motivo: '',
+            comentario: ''
+          }
+        }) || []
         setSelectedItems(initialItems)
       } catch (err) {
         setError(err.response?.data?.detail || 'No se pudo cargar el pedido')
