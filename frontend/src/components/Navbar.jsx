@@ -44,6 +44,9 @@ export default function Navbar() {
           <NavLink to="/empresa/dashboard" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
             Dashboard
           </NavLink>
+          <NavLink to="/empresa/analisis" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
+            Analisis
+          </NavLink>
         </>
       )}
 

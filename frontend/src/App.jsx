@@ -17,14 +17,11 @@ import RegisterCliente from './pages/auth/RegisterCliente'
 import RegisterEmpresa from './pages/auth/RegisterEmpresa'
 import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
-<<<<<<< Updated upstream
 import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
 import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
 import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
 import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
-=======
 import Analisis from './pages/Analisis' // 🔥 NUEVO
->>>>>>> Stashed changes
 
 import './App.css'
 
