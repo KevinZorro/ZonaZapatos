@@ -22,6 +22,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 25px;
+  flex-wrap: wrap; /* 👈 mejora en pantallas pequeñas */
 }
 
 .analisis-form input[type="date"] {
@@ -58,27 +59,50 @@
   margin-top: 15px;
 }
 
+/* CONTENEDOR GENERAL RESULTADOS */
 .analisis-resultados {
   margin-top: 25px;
+}
+
+/* GRID DE 3 COLUMNAS */
+.analisis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
   text-align: left;
 }
 
-.analisis-resultados h3 {
-  margin-top: 20px;
+/* TARJETAS DE CADA PRODUCTO */
+.analisis-card {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analisis-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.analisis-card h3 {
+  margin-bottom: 10px;
   color: #333;
 }
 
-.analisis-resultados ul {
+.analisis-card ul {
   list-style: none;
   padding-left: 0;
 }
 
-.analisis-resultados li {
+.analisis-card li {
   padding: 6px 0;
   border-bottom: 1px solid #eee;
   font-size: 0.95rem;
 }
 
+/* GRÁFICA (SE MANTIENE IGUAL) */
 .grafica-global {
   margin-top: 40px;
   text-align: center;
@@ -93,4 +117,17 @@
   max-width: 700px;
   margin: 0 auto;
   display: block;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .analisis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .analisis-grid {
+    grid-template-columns: 1fr;
+  }
 }

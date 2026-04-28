@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { getAnalisis } from "../services/analisisService";
-import "./Analisis.css"; // 👉 importa el archivo de estilos
+import "./Analisis.css";
 import GraficaGlobal from "../components/GraficaGlobal";
-import './Analisis.css'
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 function Analisis() {
   const [data, setData] = useState(null);
@@ -32,6 +33,45 @@ function Analisis() {
       });
   };
 
+  // 🔥 FUNCIÓN CORREGIDA
+  const exportarPDF = async () => {
+    const elemento = document.getElementById("reporte");
+
+    // ⏳ pequeño delay para asegurar render completo (gráficas, etc.)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const canvas = await html2canvas(elemento, {
+      scale: 2, // mejor calidad
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    // Primera página
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // Páginas adicionales
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save("reporte_devoluciones.pdf");
+  };
+
   return (
     <div className="analisis-container">
       <h2 className="analisis-title">Análisis de devoluciones</h2>
@@ -47,7 +87,12 @@ function Analisis() {
           value={fechaFin}
           onChange={(e) => setFechaFin(e.target.value)}
         />
+
         <button onClick={cargarAnalisis}>Filtrar</button>
+
+        <button onClick={exportarPDF} style={{ marginLeft: "10px" }}>
+          Exportar PDF
+        </button>
 
         <button
           onClick={() => setVerGrafica(!verGrafica)}
@@ -73,26 +118,54 @@ function Analisis() {
       )}
 
       {data && data.datos_suficientes && data.analisis && (
-        <div className="analisis-resultados">
-          {Object.entries(data.analisis).map(([producto, motivos]) => (
-            <div key={producto}>
-              <h3>{producto}</h3>
-              <ul>
-                {Object.entries(motivos).map(([motivo, porcentaje]) => (
-                  <li key={motivo}>
-                    {motivo}: {porcentaje}%
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div id="reporte">
+          <div className="analisis-resultados">
 
-          {verGrafica && (
-            <div className="grafica-global">
-              <h2>Gráfica general</h2>
-              <GraficaGlobal data={data.analisis} />
+            {/* 🚨 ALERTAS */}
+            {data?.alertas?.length > 0 && (
+              <div style={{
+                background: "#ffe3e3",
+                padding: "15px",
+                borderRadius: "10px",
+                marginBottom: "20px",
+                textAlign: "left"
+              }}>
+                <h3>🚨 Alertas</h3>
+
+                {data.alertas.map((a, i) => (
+                  <p key={i}>
+                    El producto <b>{a.producto}</b> tiene alto porcentaje en{" "}
+                    <b>{a.motivo}</b> ({a.porcentaje}%)
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* 🔥 GRID DE 3 COLUMNAS */}
+            <div className="analisis-grid">
+              {Object.entries(data.analisis).map(([producto, motivos]) => (
+                <div key={producto} className="analisis-card">
+                  <h3>{producto}</h3>
+                  <ul>
+                    {Object.entries(motivos).map(([motivo, porcentaje]) => (
+                      <li key={motivo}>
+                        {motivo}: {porcentaje}%
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
-          )}
+
+            {/* 📊 GRÁFICA */}
+            {verGrafica && (
+              <div className="grafica-global">
+                <h2>Gráfica general</h2>
+                <GraficaGlobal data={data.analisis} />
+              </div>
+            )}
+
+          </div>
         </div>
       )}
     </div>

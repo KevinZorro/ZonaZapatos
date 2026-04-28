@@ -86,6 +86,7 @@ def analizar_devoluciones(db, fecha_inicio=None, fecha_fin=None):
             producto_nombre = item.producto.nombre
             motivo = clasificar_motivo(d.motivo)
 
+            # ✅ YA NO se ignora "otro"
             conteo[producto_nombre][motivo] += 1
 
     # =========================
@@ -102,6 +103,7 @@ def analizar_devoluciones(db, fecha_inicio=None, fecha_fin=None):
             producto_nombre = item.producto.nombre
             motivo = clasificar_motivo(e.comentario)
 
+            # ✅ YA NO se ignora "otro"
             conteo[producto_nombre][motivo] += 1
 
     # =========================
@@ -112,12 +114,40 @@ def analizar_devoluciones(db, fecha_inicio=None, fecha_fin=None):
     for producto, motivos in conteo.items():
         total = sum(motivos.values())
 
+        if total == 0:
+            continue
+
         resultados[producto] = {
             motivo: round((cantidad / total) * 100, 2)
             for motivo, cantidad in motivos.items()
         }
 
+    # =========================
+    # 🚨 ALERTAS AUTOMÁTICAS
+    # =========================
+    umbral = 80  # puedes hacerlo configurable luego
+
+    alertas = []
+
+    for producto, motivos in resultados.items():
+        for motivo, porcentaje in motivos.items():
+
+            # ❌ IGNORAR "otro" SOLO aquí
+            if motivo == "otro":
+                continue
+
+            if porcentaje >= umbral:
+                alertas.append({
+                    "producto": producto,
+                    "motivo": motivo,
+                    "porcentaje": porcentaje
+                })
+
+    # =========================
+    # RETURN FINAL
+    # =========================
     return {
         "datos_suficientes": True,
-        "analisis": resultados
+        "analisis": resultados,
+        "alertas": alertas
     }
