@@ -12,20 +12,56 @@ def clasificar_motivo(texto: str):
 
     texto = texto.lower()
 
-    if "pequeñ" in texto or "apret" in texto:
+    # 🔵 TALLA PEQUEÑA
+    if any(p in texto for p in [
+        "pequeñ", "apret", "ajust", "estrech", "no entra",
+        "muy justo", "incomodo", "aprieta"
+    ]):
         return "talla_pequena"
 
-    if "grande" in texto or "holgado" in texto:
+    # 🔵 TALLA GRANDE
+    if any(p in texto for p in [
+        "grande", "holgado", "suelto", "flojo",
+        "muy ancho", "queda grande"
+    ]):
         return "talla_grande"
 
-    if "defect" in texto or "dañ" in texto:
+    # 🔴 PRODUCTO DEFECTUOSO
+    if any(p in texto for p in [
+        "defect", "dañ", "roto", "mal estado",
+        "vino mal", "fallo", "error", "no funciona",
+        "despeg", "pegamento", "descocido"
+    ]):
         return "producto_defectuoso"
 
-    if "material" in texto or "rigido" in texto:
+    # 🟡 MATERIAL / COMODIDAD
+    if any(p in texto for p in [
+        "material", "rigido", "duro", "incómodo",
+        "incomodo", "molesta", "raspa", "calidad",
+        "plastico", "no transpira"
+    ]):
         return "material_rigido"
 
-    if "acabado" in texto or "costura" in texto:
+    # 🟢 ACABADOS / FABRICACIÓN
+    if any(p in texto for p in [
+        "acabado", "costura", "mal cosido",
+        "terminacion", "detalle", "mal hecho"
+    ]):
         return "acabado"
+
+    # 🟣 COLOR / DISEÑO
+    if any(p in texto for p in [
+        "color", "diferente", "no es como", "no coincide",
+        "imagen", "foto", "diseño", "modelo distinto"
+    ]):
+        return "diseno_color"
+
+    # 🟠 ENTREGA / LOGÍSTICA
+    if any(p in texto for p in [
+        "tarde", "demora", "retraso", "envio",
+        "entrega", "no llegó", "equivocado", "pedido mal"
+    ]):
+        return "logistica"
 
     return "otro"
 
