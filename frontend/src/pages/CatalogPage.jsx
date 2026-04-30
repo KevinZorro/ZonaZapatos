@@ -41,7 +41,7 @@ function StarRatingMini({ rating, total = 0 }) {
 function ProductCard({ product, index }) {
   const estado = getEstado(product.estado)
   const imagen = product.media?.find(m => m.tipo === 'imagen')?.cloudinary_url
-  const promedio = product.promedio_resenas || 0
+  const promedio = Number(product.promedio_resenas) || 0
 
   return (
     <motion.div
