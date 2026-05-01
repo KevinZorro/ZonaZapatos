@@ -12,6 +12,8 @@ function Analisis() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [verGrafica, setVerGrafica] = useState(false);
+  const [productoSeleccionado, setProductoSeleccionado] = useState("todos");
+  const [motivoSeleccionado, setMotivoSeleccionado] = useState("todos");
 
   const cargarAnalisis = () => {
     if (!fechaInicio || !fechaFin) {
@@ -25,6 +27,13 @@ function Analisis() {
     getAnalisis(fechaInicio, fechaFin)
       .then((res) => {
         setData(res);
+
+        // 🔔 guardar alertas
+        localStorage.setItem("alertas", JSON.stringify(res.alertas || []));
+
+        // 🔔 notificar al Navbar
+        window.dispatchEvent(new Event("alertasActualizadas"));
+
         setLoading(false);
       })
       .catch(() => {
@@ -33,35 +42,26 @@ function Analisis() {
       });
   };
 
-  // 🔥 FUNCIÓN CORREGIDA
   const exportarPDF = async () => {
     const elemento = document.getElementById("reporte");
 
-    // ⏳ pequeño delay para asegurar render completo (gráficas, etc.)
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const canvas = await html2canvas(elemento, {
-      scale: 2, // mejor calidad
-    });
-
+    const canvas = await html2canvas(elemento, { scale: 2 });
     const imgData = canvas.toDataURL("image/png");
-
     const pdf = new jsPDF("p", "mm", "a4");
 
     const pageWidth = 210;
     const pageHeight = 297;
-
     const imgWidth = pageWidth;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     let heightLeft = imgHeight;
     let position = 0;
 
-    // Primera página
     pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
-    // Páginas adicionales
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
@@ -70,6 +70,19 @@ function Analisis() {
     }
 
     pdf.save("reporte_devoluciones.pdf");
+  };
+
+  // 🔥 obtener motivos únicos
+  const obtenerMotivosUnicos = () => {
+    if (!data?.analisis) return [];
+
+    const motivosSet = new Set();
+
+    Object.values(data.analisis).forEach((motivos) => {
+      Object.keys(motivos).forEach((m) => motivosSet.add(m));
+    });
+
+    return Array.from(motivosSet);
   };
 
   return (
@@ -121,40 +134,75 @@ function Analisis() {
         <div id="reporte">
           <div className="analisis-resultados">
 
-            {/* 🚨 ALERTAS */}
-            {data?.alertas?.length > 0 && (
-              <div style={{
-                background: "#ffe3e3",
-                padding: "15px",
-                borderRadius: "10px",
-                marginBottom: "20px",
-                textAlign: "left"
-              }}>
-                <h3>🚨 Alertas</h3>
-
-                {data.alertas.map((a, i) => (
-                  <p key={i}>
-                    El producto <b>{a.producto}</b> tiene alto porcentaje en{" "}
-                    <b>{a.motivo}</b> ({a.porcentaje}%)
-                  </p>
+            {/* 🔽 FILTRO PRODUCTO */}
+            <div style={{ marginBottom: "10px", textAlign: "left" }}>
+              <label style={{ marginRight: "10px", fontWeight: "bold" }}>
+                Producto:
+              </label>
+              <select
+                value={productoSeleccionado}
+                onChange={(e) => setProductoSeleccionado(e.target.value)}
+                style={{ padding: "6px", borderRadius: "6px" }}
+              >
+                <option value="todos">Todos</option>
+                {Object.keys(data.analisis).map((producto) => (
+                  <option key={producto} value={producto}>
+                    {producto}
+                  </option>
                 ))}
-              </div>
-            )}
+              </select>
+            </div>
 
-            {/* 🔥 GRID DE 3 COLUMNAS */}
+            {/* 🔽 FILTRO MOTIVO */}
+            <div style={{ marginBottom: "20px", textAlign: "left" }}>
+              <label style={{ marginRight: "10px", fontWeight: "bold" }}>
+                Motivo:
+              </label>
+              <select
+                value={motivoSeleccionado}
+                onChange={(e) => setMotivoSeleccionado(e.target.value)}
+                style={{ padding: "6px", borderRadius: "6px" }}
+              >
+                <option value="todos">Todos</option>
+                {obtenerMotivosUnicos().map((motivo) => (
+                  <option key={motivo} value={motivo}>
+                    {motivo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 🔥 GRID */}
             <div className="analisis-grid">
-              {Object.entries(data.analisis).map(([producto, motivos]) => (
-                <div key={producto} className="analisis-card">
-                  <h3>{producto}</h3>
-                  <ul>
-                    {Object.entries(motivos).map(([motivo, porcentaje]) => (
-                      <li key={motivo}>
-                        {motivo}: {porcentaje}%
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {Object.entries(data.analisis)
+                .filter(([producto, motivos]) => {
+                  const cumpleProducto =
+                    productoSeleccionado === "todos" ||
+                    producto === productoSeleccionado;
+
+                  const cumpleMotivo =
+                    motivoSeleccionado === "todos" ||
+                    Object.keys(motivos).includes(motivoSeleccionado);
+
+                  return cumpleProducto && cumpleMotivo;
+                })
+                .map(([producto, motivos]) => (
+                  <div key={producto} className="analisis-card">
+                    <h3>{producto}</h3>
+                    <ul>
+                      {Object.entries(motivos)
+                        .filter(([motivo]) =>
+                          motivoSeleccionado === "todos" ||
+                          motivo === motivoSeleccionado
+                        )
+                        .map(([motivo, porcentaje]) => (
+                          <li key={motivo}>
+                            {motivo}: {porcentaje}%
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                ))}
             </div>
 
             {/* 📊 GRÁFICA */}

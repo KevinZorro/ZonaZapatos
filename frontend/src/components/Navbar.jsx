@@ -9,14 +9,38 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
   const { totalItems } = useCarrito()
   const navigate = useNavigate()
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  // 🔔 NUEVO
+  // 🔔 ALERTAS
+const [alertas, setAlertas] = useState([])
+const [openAlertas, setOpenAlertas] = useState(false)
+
+// 🔔 cargar y escuchar cambios
+useEffect(() => {
+  const interval = setInterval(() => {
+    const stored = JSON.parse(localStorage.getItem("alertas")) || []
+    setAlertas(stored)
+  }, 800) // cada 0.8s (rápido pero liviano)
+
+  return () => clearInterval(interval)
+}, [])
+
+
+// 🔔 abrir/cerrar campana
+const toggleAlertas = () => {
+  const nuevoEstado = !openAlertas
+  setOpenAlertas(nuevoEstado)
+
+  // ❌ NO borrar al abrir
+  // ✔ borrar cuando se CIERRA
+  if (!nuevoEstado) {
+    localStorage.removeItem("alertas")
+    setAlertas([])
+  }
+}
 
   // Cierra el menú si cambia la ruta
   useEffect(() => { setMenuOpen(false) }, [navigate])
@@ -24,7 +48,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     setMenuOpen(false)
     await logout()
-    navigate('/')  // RF4: redirige al home público
+    navigate('/')
   }
 
   const navLinks = (
@@ -91,9 +115,65 @@ export default function Navbar() {
 
   const authButtons = isAuthenticated ? (
     <>
+      {/* 🔔 CAMPANA SOLO EMPRESA */}
+      {user?.rol === 'empresa' && (
+        <div style={{ position: 'relative', marginRight: '10px' }}>
+          <button
+            onClick={toggleAlertas}
+            className="nb-link"
+            style={{ fontSize: '18px' }}
+          >
+            🔔
+          </button>
+
+          {alertas.length > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-5px',
+              right: '-5px',
+              background: 'red',
+              color: '#fff',
+              borderRadius: '50%',
+              fontSize: '10px',
+              padding: '2px 6px'
+            }}>
+              {alertas.length}
+            </span>
+          )}
+
+          {openAlertas && (
+            <div style={{
+              position: 'absolute',
+              top: '35px',
+              right: 0,
+              background: '#fff',
+              padding: '10px',
+              borderRadius: '10px',
+              width: '260px',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+              zIndex: 1000
+            }}>
+              <h4 style={{ marginBottom: '10px' }}>Alertas</h4>
+
+              {alertas.length === 0 ? (
+                <p>No hay alertas</p>
+              ) : (
+                alertas.map((a, i) => (
+                  <p key={i} style={{ fontSize: '13px', marginBottom: '5px' }}>
+                    <b>{a.producto}</b><br />
+                    {a.motivo} ({a.porcentaje}%)
+                  </p>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <NavLink to="/perfil" className={({ isActive }) => `nb-avatar ${isActive ? 'nb-avatar--active' : ''}`} title="Mi perfil">
         {user?.correo?.[0]?.toUpperCase() || '?'}
       </NavLink>
+
       <button onClick={handleLogout} className="nb-btn nb-btn--danger">
         Cerrar sesión
       </button>
@@ -109,23 +189,19 @@ export default function Navbar() {
     <>
       <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} role="navigation">
         <div className="navbar__inner container">
-          {/* Brand */}
           <Link to="/" className="navbar__brand">
             <span className="navbar__brand-icon">👟</span>
             <span className="navbar__brand-name">Zona Zapatos</span>
           </Link>
 
-          {/* Desktop links */}
           <div className="navbar__links navbar__links--desktop">
             {navLinks}
           </div>
 
-          {/* Desktop auth */}
           <div className="navbar__auth navbar__auth--desktop">
             {authButtons}
           </div>
 
-          {/* Hamburger */}
           <button
             className="navbar__hamburger"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -139,7 +215,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {menuOpen && (
           <>
@@ -161,33 +236,12 @@ export default function Navbar() {
                 <span className="nb-drawer__brand">
                   <span>👟</span> Zona Zapatos
                 </span>
-                <button className="nb-drawer__close" onClick={() => setMenuOpen(false)} aria-label="Cerrar">✕</button>
+                <button className="nb-drawer__close" onClick={() => setMenuOpen(false)}>✕</button>
               </div>
-
-              {isAuthenticated && user && (
-                <div className="nb-drawer__user">
-                  <div className="nb-drawer__avatar">
-                    {user.correo?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <div>
-                    <p className="nb-drawer__user-email">{user.correo}</p>
-                    <p className="nb-drawer__user-role">{user.rol === 'empresa' ? 'Empresa' : 'Cliente'}</p>
-                  </div>
-                </div>
-              )}
 
               <nav className="nb-drawer__links">
                 {navLinks}
               </nav>
-
-              {isAuthenticated && (
-                <NavLink to="/perfil" className="nb-drawer__profile-link" onClick={() => setMenuOpen(false)}>
-                  <div className="nb-drawer__avatar">
-                    {user?.correo?.[0]?.toUpperCase() || '?'}
-                  </div>
-                  <span>Mi perfil</span>
-                </NavLink>
-              )}
 
               <div className="nb-drawer__auth">
                 {isAuthenticated
