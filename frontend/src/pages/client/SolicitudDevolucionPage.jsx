@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../../services/api'
@@ -32,6 +32,7 @@ export default function SolicitudDevolucionPage() {
   const [comentarioGeneral, setComentarioGeneral] = useState('')  // Comentario general opcional
   const [evidencias, setEvidencias] = useState([])
   const [previewImages, setPreviewImages] = useState([])
+  const fileInputRef = useRef(null)  // Ref para limpiar el input file
   
   // Verificar autenticación
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -126,12 +127,16 @@ export default function SolicitudDevolucionPage() {
     const validFiles = files.filter(file => file.type.startsWith('image/'))
     if (validFiles.length !== files.length) {
       setError('Solo se permiten archivos de imagen')
+      // Limpiar el input para permitir volver a seleccionar
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
 
     // Limitar a 5 imágenes
     if (evidencias.length + validFiles.length > 5) {
       setError('Máximo 5 imágenes permitidas')
+      // Limpiar el input para permitir volver a seleccionar
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
 
@@ -144,6 +149,9 @@ export default function SolicitudDevolucionPage() {
       url: URL.createObjectURL(file)
     }))
     setPreviewImages([...previewImages, ...newPreviews])
+    
+    // Limpiar el input para permitir volver a seleccionar los mismos archivos
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeImage = (index) => {
@@ -531,6 +539,7 @@ export default function SolicitudDevolucionPage() {
                   className="hidden"
                   id="evidencias-upload"
                   name="evidencias"
+                  ref={fileInputRef}
                 />
                 <label
                   htmlFor="evidencias-upload"
@@ -557,7 +566,8 @@ export default function SolicitudDevolucionPage() {
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110"
+                        title="Eliminar imagen"
                       >
                         ×
                       </button>

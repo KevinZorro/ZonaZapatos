@@ -139,8 +139,7 @@ function ResenaForm({ encuesta, onSubmit, onCancel }) {
   )
 }
 
-function ResenasSection({ resenasData, encuestaPendiente, onResenaSubmit, onResenaEdit, onResenaDelete, cliente, clienteId }) {
-  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+function ResenasSection({ resenasData, encuestaPendiente, onResenaSubmit, onResenaEdit, onResenaDelete, cliente, clienteId, mostrarFormulario, setMostrarFormulario }) {
   const [editingResena, setEditingResena] = useState(null)
   const [editRating, setEditRating] = useState(5)
   const [editComment, setEditComment] = useState('')
@@ -311,6 +310,27 @@ function ResenasSection({ resenasData, encuestaPendiente, onResenaSubmit, onRese
           ))}
         </div>
       )}
+
+      {/* Formulario para crear nueva reseña cuando hay reseñas existentes */}
+      {encuestaPendiente && cliente && mostrarFormulario && (
+        <ResenaForm
+          encuesta={encuestaPendiente}
+          onSubmit={handleSubmit}
+          onCancel={() => setMostrarFormulario(false)}
+        />
+      )}
+
+      {/* Botón para mostrar formulario cuando hay reseñas pero está oculto */}
+      {encuestaPendiente && cliente && !mostrarFormulario && resenasData.total > 0 && (
+        <div className="pp-resenas-add-review">
+          <button
+            className="pp-resenas-add-review__btn"
+            onClick={() => setMostrarFormulario(true)}
+          >
+            ✍️ Escribir una reseña
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -333,6 +353,8 @@ export default function ProductPage() {
   const [editingResena, setEditingResena] = useState(null)
   const [editRating, setEditRating] = useState(5)
   const [editComment, setEditComment] = useState('')
+  // Estado para mostrar formulario de reseña desde el banner
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -581,7 +603,10 @@ export default function ProductPage() {
               <button
                 className="pp-encuesta-banner__btn"
                 onClick={() => {
-                  document.querySelector('.pp-resenas-section')?.scrollIntoView({ behavior: 'smooth' })
+                  setMostrarFormulario(true)
+                  setTimeout(() => {
+                    document.querySelector('.pp-resenas-section')?.scrollIntoView({ behavior: 'smooth' })
+                  }, 100)
                 }}
               >
                 Dejar reseña →
@@ -684,6 +709,8 @@ export default function ProductPage() {
           }}
           cliente={user?.rol === 'cliente'}
           clienteId={user?.cliente_id}
+          mostrarFormulario={mostrarFormulario}
+          setMostrarFormulario={setMostrarFormulario}
         />
       </div>
     </div>

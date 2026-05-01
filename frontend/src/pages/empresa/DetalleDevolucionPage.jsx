@@ -320,40 +320,28 @@ export default function DetalleDevolucionPage() {
               <span>📷</span> Evidencias Fotográficas
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {devolucion.evidencias.map((evidencia) => (
-                <a
-                  key={evidencia.id}
-                  href={evidencia.cloudinary_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block group"
-                  title="Haz clic para ver en tamaño completo"
-                >
-                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-purple-500 transition-all">
-                    <img
-                      src={evidencia.cloudinary_url}
-                      alt="Evidencia de devolución"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                        e.target.nextSibling.style.display = 'flex'
-                      }}
-                    />
-                    <div 
-                      className="absolute inset-0 hidden flex-col items-center justify-center bg-gray-50 text-gray-400"
-                      style={{ display: 'none' }}
-                    >
-                      <span className="text-4xl mb-2">📷</span>
-                      <span className="text-xs text-center px-2">Imagen no disponible<br/>Haz clic para ver</span>
+              {devolucion.evidencias.map((evidencia, index) => {
+                console.log(`DEBUG: Evidencia ${index + 1} URL:`, evidencia.cloudinary_url)
+                return (
+                  <a
+                    key={evidencia.id}
+                    href={evidencia.cloudinary_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group"
+                    title="Haz clic para ver en tamaño completo"
+                  >
+                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all bg-gray-100">
+                      <img
+                        src={evidencia.cloudinary_url}
+                        alt={`Evidencia ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
                     </div>
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                      <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
-                        Ver en tamaño completo
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              ))}
+                  </a>
+                )
+              })}
             </div>
           </div>
         )}
