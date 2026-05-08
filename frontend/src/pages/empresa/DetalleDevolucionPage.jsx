@@ -10,7 +10,7 @@ export default function DetalleDevolucionPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [procesando, setProcesando] = useState(false)
-  const [mensajeExito, setMensajeExito] = useState(null)
+  const [modalExito, setModalExito] = useState(null)
   const [respuestaEmpresa, setRespuestaEmpresa] = useState('')
 
   useEffect(() => {
@@ -38,16 +38,15 @@ export default function DetalleDevolucionPage() {
         respuesta_empresa: respuestaEmpresa || undefined
       })
       
-      setMensajeExito(
-        nuevoEstado === 'aprobada' 
-          ? 'Devolución aprobada exitosamente. El pedido ha sido marcado como "en devolución".'
-          : 'Devolución rechazada.'
-      )
-      
-      // Actualizar la vista después de 5 segundos
-      setTimeout(() => {
-        navigate('/empresa/devoluciones')
-      }, 5000)
+      // Mostrar modal de éxito en lugar de mensaje temporal
+      setModalExito({
+        tipo: nuevoEstado === 'aprobada' ? 'success' : 'error',
+        titulo: nuevoEstado === 'aprobada' ? '¡Devolución Aprobada!' : 'Devolución Rechazada',
+        mensaje: nuevoEstado === 'aprobada'
+          ? 'La solicitud de devolución ha sido aprobada exitosamente. El pedido ha sido marcado como "en devolución" y el cliente ha sido notificado.'
+          : 'La solicitud de devolución ha sido rechazada. El cliente será notificado de la decisión.',
+        icono: nuevoEstado === 'aprobada' ? '✅' : '❌'
+      })
     } catch (err) {
       console.error('Error actualizando estado:', err)
       setError('No se pudo actualizar el estado de la devolución')
@@ -125,9 +124,74 @@ export default function DetalleDevolucionPage() {
           </span>
         </div>
 
-        {mensajeExito && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
-            {mensajeExito}
+        {/* Modal de éxito/error centrado */}
+        {modalExito && (
+          <div 
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center"
+              style={{ 
+                border: `4px solid ${modalExito.tipo === 'success' ? '#22c55e' : '#dc2626'}`
+              }}
+            >
+              {/* Icono grande animado */}
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+                className="text-6xl mb-4"
+              >
+                {modalExito.icono}
+              </motion.div>
+              
+              {/* Título */}
+              <h2 
+                className="text-2xl font-bold mb-3"
+                style={{ color: modalExito.tipo === 'success' ? '#15803d' : '#b91c1c' }}
+              >
+                {modalExito.titulo}
+              </h2>
+              
+              {/* Mensaje descriptivo */}
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                {modalExito.mensaje}
+              </p>
+              
+              {/* Botón de acción - estilos inline explícitos para visibilidad */}
+              <button
+                onClick={() => navigate('/empresa/devoluciones')}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  color: 'white',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: modalExito.tipo === 'success' ? '#16a34a' : '#dc2626'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = modalExito.tipo === 'success' ? '#15803d' : '#b91c1c'
+                  e.target.style.transform = 'scale(1.05)'
+                  e.target.style.boxShadow = '0 10px 15px rgba(0, 0, 0, 0.2)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = modalExito.tipo === 'success' ? '#16a34a' : '#dc2626'
+                  e.target.style.transform = 'scale(1)'
+                  e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)'
+                }}
+              >
+                Entendido →
+              </button>
+            </motion.div>
           </div>
         )}
 
@@ -215,7 +279,7 @@ export default function DetalleDevolucionPage() {
             </span>
           </h2>
           <div className="space-y-4">
-            {devolucion.pedido.productos.map((producto, index) => (
+            {(devolucion.pedido?.productos || []).map((producto, index) => (
               <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
                 {producto.imagen_url ? (
                   <img
@@ -234,9 +298,14 @@ export default function DetalleDevolucionPage() {
                   {producto.descripcion && (
                     <p className="text-sm text-gray-500 mt-1">{producto.descripcion}</p>
                   )}
+                  {producto.motivo && (
+                    <p className="text-sm text-amber-600 mt-1 font-medium">
+                      Motivo: {producto.motivo}
+                    </p>
+                  )}
                   <div className="flex items-center gap-4 mt-2 text-sm">
                     <span className="text-gray-600">Cantidad: <strong>{producto.cantidad}</strong></span>
-                    <span className="text-gray-600">Precio: <strong>${producto.precio_unitario.toLocaleString('es-CO')}</strong></span>
+                    <span className="text-gray-600">Precio: <strong>${producto.precio_unitario?.toLocaleString('es-CO')}</strong></span>
                   </div>
                 </div>
               </div>
@@ -251,40 +320,28 @@ export default function DetalleDevolucionPage() {
               <span>📷</span> Evidencias Fotográficas
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {devolucion.evidencias.map((evidencia) => (
-                <a
-                  key={evidencia.id}
-                  href={evidencia.cloudinary_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block group"
-                  title="Haz clic para ver en tamaño completo"
-                >
-                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-purple-500 transition-all">
-                    <img
-                      src={evidencia.cloudinary_url}
-                      alt="Evidencia de devolución"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                        e.target.nextSibling.style.display = 'flex'
-                      }}
-                    />
-                    <div 
-                      className="absolute inset-0 hidden flex-col items-center justify-center bg-gray-50 text-gray-400"
-                      style={{ display: 'none' }}
-                    >
-                      <span className="text-4xl mb-2">📷</span>
-                      <span className="text-xs text-center px-2">Imagen no disponible<br/>Haz clic para ver</span>
+              {devolucion.evidencias.map((evidencia, index) => {
+                console.log(`DEBUG: Evidencia ${index + 1} URL:`, evidencia.cloudinary_url)
+                return (
+                  <a
+                    key={evidencia.id}
+                    href={evidencia.cloudinary_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block group"
+                    title="Haz clic para ver en tamaño completo"
+                  >
+                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all bg-gray-100">
+                      <img
+                        src={evidencia.cloudinary_url}
+                        alt={`Evidencia ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
                     </div>
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                      <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-sm font-medium">
-                        Ver en tamaño completo
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              ))}
+                  </a>
+                )
+              })}
             </div>
           </div>
         )}

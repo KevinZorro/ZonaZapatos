@@ -19,11 +19,25 @@ import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
 import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
 import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
+import EncuestaPage from './pages/client/EncuestaPage'
 import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
 import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
+import EncuestaReminderModal from './components/EncuestaReminderModal'
+import { useAuth } from './context/AuthContext'
 import Analisis from './pages/Analisis' // 🔥 NUEVO
 
 import './App.css'
+
+// Componente wrapper para el modal de recordatorio de encuesta
+function EncuestaReminderWrapper() {
+  const { encuestaPendiente, clearEncuestaPendiente } = useAuth()
+  return encuestaPendiente ? (
+    <EncuestaReminderModal
+      encuesta={encuestaPendiente}
+      onClose={clearEncuestaPendiente}
+    />
+  ) : null
+}
 
 // Placeholder para rutas futuras
 const Placeholder = ({ title }) => (
@@ -98,6 +112,12 @@ function AppRoutes() {
               </ProtectedRoute>
             } />
 
+            <Route path="/encuestas/:encuestaId" element={
+              <ProtectedRoute roles={['cliente']}>
+                <EncuestaPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="/carrito" element={
               <ProtectedRoute roles={['cliente']}>
                 <CarritoPage />
@@ -159,6 +179,7 @@ function AppRoutes() {
           </Routes>
         </AnimatePresence>
       </main>
+      <EncuestaReminderWrapper />
     </>
   )
 }

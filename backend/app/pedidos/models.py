@@ -58,6 +58,11 @@ class Pedido(Base):
         "EncuestaSatisfaccion", back_populates="pedido", uselist=False
     )
 
+    @property
+    def encuesta_id(self) -> int | None:
+        """Devuelve el ID de la encuesta asociada si existe."""
+        return self.encuesta.id if self.encuesta else None
+
 
 class ItemPedido(Base):
     __tablename__ = "items_pedido"

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../../services/api'
@@ -32,6 +32,7 @@ export default function SolicitudDevolucionPage() {
   const [comentarioGeneral, setComentarioGeneral] = useState('')  // Comentario general opcional
   const [evidencias, setEvidencias] = useState([])
   const [previewImages, setPreviewImages] = useState([])
+  const fileInputRef = useRef(null)  // Ref para limpiar el input file
   
   // Verificar autenticación
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -47,16 +48,33 @@ export default function SolicitudDevolucionPage() {
         const { data } = await api.get(`/pedidos/${pedidoId}`)
         setPedido(data)
         // Inicializar selectedItems con todos los productos del pedido (no seleccionados)
-        const initialItems = data.items?.map(item => ({
-          item_pedido_id: item.id,
-          producto_nombre: item.producto_nombre || 'Producto',
-          producto_imagen_url: item.producto_imagen_url,
-          cantidad_comprada: item.cantidad,
-          cantidad_a_devolver: 1,
-          seleccionado: false,
-          motivo: '',
-          comentario: ''
-        })) || []
+        // Buscar el nombre del producto en múltiples campos posibles (snapshot o relación)
+        const initialItems = data.items?.map(item => {
+          // Intentar obtener el nombre de varias fuentes posibles
+          const nombreProducto = item.producto_nombre_snapshot 
+            || item.producto_nombre 
+            || item.producto?.nombre 
+            || item.nombre_producto 
+            || 'Producto sin nombre'
+          
+          // Intentar obtener la imagen de varias fuentes posibles
+          const imagenProducto = item.producto_imagen_url_snapshot
+            || item.producto_imagen_url
+            || item.producto?.imagen_url
+            || item.imagen_url
+            || null
+          
+          return {
+            item_pedido_id: item.id,
+            producto_nombre: nombreProducto,
+            producto_imagen_url: imagenProducto,
+            cantidad_comprada: item.cantidad,
+            cantidad_a_devolver: 1,
+            seleccionado: false,
+            motivo: '',
+            comentario: ''
+          }
+        }) || []
         setSelectedItems(initialItems)
       } catch (err) {
         setError(err.response?.data?.detail || 'No se pudo cargar el pedido')
@@ -109,12 +127,16 @@ export default function SolicitudDevolucionPage() {
     const validFiles = files.filter(file => file.type.startsWith('image/'))
     if (validFiles.length !== files.length) {
       setError('Solo se permiten archivos de imagen')
+      // Limpiar el input para permitir volver a seleccionar
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
 
     // Limitar a 5 imágenes
     if (evidencias.length + validFiles.length > 5) {
       setError('Máximo 5 imágenes permitidas')
+      // Limpiar el input para permitir volver a seleccionar
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
 
@@ -127,6 +149,9 @@ export default function SolicitudDevolucionPage() {
       url: URL.createObjectURL(file)
     }))
     setPreviewImages([...previewImages, ...newPreviews])
+    
+    // Limpiar el input para permitir volver a seleccionar los mismos archivos
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   const removeImage = (index) => {
@@ -514,6 +539,7 @@ export default function SolicitudDevolucionPage() {
                   className="hidden"
                   id="evidencias-upload"
                   name="evidencias"
+                  ref={fileInputRef}
                 />
                 <label
                   htmlFor="evidencias-upload"
@@ -540,7 +566,8 @@ export default function SolicitudDevolucionPage() {
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110"
+                        title="Eliminar imagen"
                       >
                         ×
                       </button>

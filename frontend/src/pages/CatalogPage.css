@@ -252,6 +252,58 @@
   color: #fff;
 }
 
+.prod-card__rating-badge {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.95);
+  color: white;
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.prod-card__stars {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.prod-card__stars--empty {
+  opacity: 0.7;
+}
+
+.prod-card__star {
+  color: #f59e0b;
+}
+
+.prod-card__star--empty {
+  color: #d1d5db;
+}
+
+.prod-card__rating {
+  font-weight: 600;
+  color: var(--dark);
+}
+
+.prod-card__stars--empty .prod-card__rating {
+  color: var(--gray);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.prod-card__count {
+  color: var(--gray);
+  font-weight: 400;
+}
+
 /* Card body */
 .prod-card__body {
   padding: 0.875rem;
