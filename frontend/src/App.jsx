@@ -21,6 +21,7 @@ import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
 import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
 import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
 import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
+import Analisis from './pages/Analisis' // 🔥 NUEVO
 
 import './App.css'
 
@@ -51,6 +52,7 @@ function AppRoutes() {
       <main>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
+            
             {/* Splash / Onboarding */}
             <Route path="/" element={<SplashPage />} />
 
@@ -64,7 +66,7 @@ function AppRoutes() {
             <Route path="/registro/empresa" element={<RegisterEmpresa />} />
             <Route path="/auth/confirmar/:token" element={<ConfirmPage />} />
 
-            {/* Perfil — todos los roles autenticados */}
+            {/* Perfil */}
             <Route path="/perfil" element={
               <ProtectedRoute roles={['cliente', 'empresa', 'admin']}>
                 <ProfilePage />
@@ -108,19 +110,23 @@ function AppRoutes() {
                 <Placeholder title="Panel de Empresa" />
               </ProtectedRoute>
             } />
+
             <Route path="/empresa/productos" element={
               <ProtectedRoute roles={['empresa']}>
                 <EmpresaProductosPage />
               </ProtectedRoute>
             } />
+
             <Route path="/empresa/dashboard" element={
               <ProtectedRoute roles={['empresa']}>
                 <Placeholder title="Dashboard de Ventas" />
               </ProtectedRoute>
             } />
+
+            {/* 🔥 AQUÍ ESTÁ TU CAMBIO IMPORTANTE */}
             <Route path="/empresa/analisis" element={
               <ProtectedRoute roles={['empresa']}>
-                <Placeholder title="Análisis y Predicción" />
+                <Analisis />  {/* 👈 reemplaza el Placeholder */}
               </ProtectedRoute>
             } />
             <Route path="/empresa/devoluciones" element={
@@ -142,12 +148,14 @@ function AppRoutes() {
                 <p style={{ color: '#6B7280', marginTop: '0.5rem' }}>No tienes permiso para ver esta página.</p>
               </div>
             } />
+
             <Route path="*" element={
               <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
                 <span style={{ fontSize: '4rem' }}>🔍</span>
                 <h1 style={{ marginTop: '1rem', color: '#1A1A1A' }}>Página no encontrada</h1>
               </div>
             } />
+
           </Routes>
         </AnimatePresence>
       </main>

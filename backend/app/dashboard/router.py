@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import require_rol
+from app.dashboard.services import analizar_devoluciones
+from typing import Optional
+from datetime import date
 
 router = APIRouter(prefix="/empresa", tags=["dashboard", "analisis", "prediccion"])
 
@@ -16,11 +19,13 @@ def get_dashboard(db: Session = Depends(get_db)):
     raise HTTPException(status_code=501, detail=_P6)
 
 
-@router.get(
-    "/analisis-devoluciones", dependencies=[Depends(require_rol("empresa"))]
-)
-def get_analisis_devoluciones(db: Session = Depends(get_db)):
-    raise HTTPException(status_code=501, detail=_P7)
+@router.get("/analisis-devoluciones")
+def get_analisis_devoluciones(
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    return analizar_devoluciones(db, fecha_inicio, fecha_fin)
 
 
 @router.get(
