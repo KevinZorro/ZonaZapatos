@@ -11,6 +11,9 @@ from app.core.security import get_current_user, require_rol
 from app.pedidos.models import EstadoPedidoEnum, ItemPedido, Pedido
 from app.productos.models import Producto
 from app.usuarios.models import Empresa
+from app.dashboard.services import analizar_devoluciones
+from typing import Optional
+from datetime import date
 
 router = APIRouter(prefix="/empresa", tags=["dashboard", "analisis", "prediccion"])
 
@@ -214,11 +217,13 @@ def get_dashboard(
 
 
 # ── Stub: Análisis de devoluciones (Phase 7 — Brayan) ────────────────────────
-@router.get(
-    "/analisis-devoluciones", dependencies=[Depends(require_rol("empresa"))]
-)
-def get_analisis_devoluciones(db: Session = Depends(get_db)):
-    raise HTTPException(status_code=501, detail=_P7)
+@router.get("/analisis-devoluciones", dependencies=[Depends(require_rol("empresa"))])
+def get_analisis_devoluciones(
+    fecha_inicio: Optional[date] = None,
+    fecha_fin: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    return analizar_devoluciones(db, fecha_inicio, fecha_fin)
 
 
 # ── Stub: Predicción de ventas (Phase 7 — Javier) ────────────────────────────

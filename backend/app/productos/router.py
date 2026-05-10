@@ -9,7 +9,14 @@ from app.core.cloudinary_client import delete_file, is_cloudinary_configured, up
 from app.core.database import get_db
 from app.core.security import get_current_user, require_rol
 from app.productos.models import Categoria, EstadoProductoEnum, MediaArchivo, Producto, TipoMediaEnum
-from app.productos.schemas import ProductoCreate, ProductoListResponse, ProductoOut, ProductoUpdate
+from app.productos.schemas import (
+    ProductoCreate,
+    ProductoListResponse,
+    ProductoOut,
+    ProductoUpdate,
+    ResenaOut,
+    ResenasSummary,
+)
 from app.usuarios.models import Empresa
 
 router = APIRouter(tags=["productos"])
@@ -33,7 +40,7 @@ def _get_producto_empresa(producto_id: int, empresa_id: int, db: Session) -> Pro
     return producto
 
 
-def _serialize_producto(producto: Producto) -> ProductoOut:
+def _serialize_producto(producto: Producto, db: Session = None) -> ProductoOut:
     data = ProductoOut.from_orm_with_empresa(producto)
     modelo_3d = next((media for media in producto.media if media.tipo == "modelo_3d"), None)
     data.modelo_3d_url = (
@@ -41,6 +48,27 @@ def _serialize_producto(producto: Producto) -> ProductoOut:
         if modelo_3d
         else settings.demo_model_3d_url
     )
+
+    # Calcular promedio de reseñas si hay sesión de DB
+    if db:
+        from app.encuestas.models import EncuestaSatisfaccion
+        from sqlalchemy import func
+
+        result = db.query(
+            func.avg(EncuestaSatisfaccion.calificacion).label('promedio'),
+            func.count(EncuestaSatisfaccion.id).label('total')
+        ).filter(
+            EncuestaSatisfaccion.producto_id == producto.id,
+            EncuestaSatisfaccion.respondida == True
+        ).first()
+
+        if result and result.promedio:
+            data.promedio_resenas = round(result.promedio, 1)
+            data.total_resenas = result.total
+        else:
+            data.promedio_resenas = 0
+            data.total_resenas = 0
+
     return data
 
 
@@ -71,7 +99,10 @@ def _get_media_kind(file: UploadFile) -> tuple[TipoMediaEnum, str | None]:
         detail=f"Archivo no soportado: {file.filename or 'sin_nombre'}",
     )
 
-
+@router.get("/categorias")
+def list_categorias(db: Session = Depends(get_db)):
+    return db.query(Categoria).all()
+    
 # ── Public catalog ────────────────────────────────────────────────────────────
 @router.get("/productos", response_model=ProductoListResponse)
 def list_productos(
@@ -79,6 +110,11 @@ def list_productos(
     page_size: int = Query(20, ge=1, le=100),
     q: str = Query(None),
     estado: str = Query(None),
+    empresa_id: int = Query(None),
+    categoria_id: int = Query(None),
+    precio_min: float = Query(None),
+    precio_max: float = Query(None),
+    talla: str = Query(None),
     db: Session = Depends(get_db),
 ):
     query = db.query(Producto)
@@ -89,13 +125,24 @@ def list_productos(
             query = query.filter(Producto.estado == EstadoProductoEnum(estado))
         except ValueError:
             pass
+    if empresa_id:
+        query = query.filter(Producto.empresa_id == empresa_id)
+    if categoria_id:
+        query = query.filter(Producto.categorias.any(Categoria.id == categoria_id))
+    if precio_min is not None:
+        query = query.filter(Producto.precio >= precio_min)
+    if precio_max is not None:
+        query = query.filter(Producto.precio <= precio_max)
+    if talla:
+        query = query.filter(Producto.talla.ilike(f"%{talla}%"))
+
     total = query.count()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
     return ProductoListResponse(
         total=total,
         page=page,
         page_size=page_size,
-        items=[_serialize_producto(p) for p in items],
+        items=[_serialize_producto(p, db) for p in items],
     )
 
 
@@ -107,7 +154,91 @@ def get_producto(
     producto = db.query(Producto).filter(Producto.id == producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    return _serialize_producto(producto)
+    return _serialize_producto(producto, db)
+
+
+@router.get("/productos/{producto_id}/resenas", response_model=ResenasSummary)
+def get_producto_resenas(
+    producto_id: int,
+    db: Session = Depends(get_db),
+):
+    """Obtiene las reseñas (encuestas respondidas) de un producto."""
+    from app.encuestas.models import EncuestaSatisfaccion
+    from app.pedidos.models import Pedido
+    from app.usuarios.models import Cliente
+    from sqlalchemy.orm import joinedload
+
+    # Verificar que el producto existe
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+
+    # Obtener encuestas respondidas para este producto con info del cliente
+    encuestas = (
+        db.query(EncuestaSatisfaccion)
+        .options(
+            joinedload(EncuestaSatisfaccion.pedido)
+            .joinedload(Pedido.cliente)
+            .joinedload(Cliente.usuario)
+        )
+        .filter(
+            EncuestaSatisfaccion.producto_id == producto_id,
+            EncuestaSatisfaccion.respondida == True,
+        )
+        .order_by(EncuestaSatisfaccion.respondida_en.desc())
+        .all()
+    )
+
+    if not encuestas:
+        return ResenasSummary(
+            promedio=0.0,
+            total=0,
+            distribucion={1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
+            resenas=[],
+        )
+
+    # Calcular estadísticas
+    calificaciones = [e.calificacion for e in encuestas]
+    promedio = sum(calificaciones) / len(calificaciones)
+
+    distribucion = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    for c in calificaciones:
+        if c in distribucion:
+            distribucion[c] += 1
+
+    resenas = []
+    for e in encuestas:
+        cliente_data = None
+        if e.pedido and e.pedido.cliente:
+            cliente = e.pedido.cliente
+            avatar_url = None
+            if cliente.usuario:
+                avatar_url = cliente.usuario.foto_url
+            cliente_data = {
+                "id": cliente.id,
+                "nombre": cliente.nombre,
+                "avatar_url": avatar_url,
+                "inicial": cliente.nombre[0].upper() if cliente.nombre else "?"
+            }
+        
+        resenas.append(
+            ResenaOut(
+                id=e.id,
+                calificacion=e.calificacion,
+                comentario=e.comentario,
+                respondida_en=e.respondida_en.isoformat() if e.respondida_en else None,
+                pedido_id=e.pedido_id,
+                cliente_id=cliente.id if cliente else None,
+                cliente=cliente_data,
+            )
+        )
+
+    return ResenasSummary(
+        promedio=round(promedio, 1),
+        total=len(encuestas),
+        distribucion=distribucion,
+        resenas=resenas,
+    )
 
 
 # ── Empresa — lista propia ────────────────────────────────────────────────────
@@ -139,7 +270,7 @@ def list_mis_productos(
         total=total,
         page=page,
         page_size=page_size,
-        items=[_serialize_producto(p) for p in items],
+        items=[_serialize_producto(p, db) for p in items],
     )
 
 
@@ -173,7 +304,7 @@ def create_producto(
     db.add(producto)
     db.commit()
     db.refresh(producto)
-    return _serialize_producto(producto)
+    return _serialize_producto(producto, db)
 
 
 @router.post(
@@ -208,7 +339,7 @@ def upload_producto_media(
 
     db.commit()
     db.refresh(producto)
-    return _serialize_producto(producto)
+    return _serialize_producto(producto, db)
 
 
 # ── Empresa — editar ──────────────────────────────────────────────────────────
@@ -249,7 +380,7 @@ def update_producto(
 
     db.commit()
     db.refresh(producto)
-    return _serialize_producto(producto)
+    return _serialize_producto(producto, db)
 
 
 @router.delete(
@@ -278,7 +409,7 @@ def delete_producto_media(
     db.delete(media)
     db.commit()
     db.refresh(producto)
-    return _serialize_producto(producto)
+    return _serialize_producto(producto, db)
 
 
 # ── Empresa — eliminar ────────────────────────────────────────────────────────

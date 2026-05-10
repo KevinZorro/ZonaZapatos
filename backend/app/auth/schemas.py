@@ -44,6 +44,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     rol: str
+    cliente_id: int | None = None  # Solo para usuarios con rol cliente
 
 
 class MsgResponse(BaseModel):

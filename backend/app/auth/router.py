@@ -145,7 +145,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
 
     token = create_access_token({"sub": str(usuario.id), "rol": usuario.rol.value})
-    return TokenResponse(access_token=token, rol=usuario.rol.value)
+    
+    # Buscar cliente_id si el usuario es un cliente
+    cliente_id = None
+    if usuario.rol.value == "cliente":
+        cliente = db.query(Cliente).filter(Cliente.usuario_id == usuario.id).first()
+        if cliente:
+            cliente_id = cliente.id
+    
+    return TokenResponse(access_token=token, rol=usuario.rol.value, cliente_id=cliente_id)
 
 
 # ── Confirmación de cuenta ───────────────────────────────────────────────────

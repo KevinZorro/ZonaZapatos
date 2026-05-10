@@ -1,0 +1,242 @@
+.encuesta-page {
+  min-height: 100vh;
+  padding: 6rem 1rem 2rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.encuesta-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.encuesta-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.encuesta-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.encuesta-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.encuesta-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.encuesta-subtitle strong {
+  color: #0d9488;
+}
+
+.encuesta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.encuesta-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.encuesta-stars-section {
+  text-align: center;
+}
+
+.encuesta-stars {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.encuesta-star {
+  font-size: 2.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: all 0.2s ease;
+  padding: 0.25rem;
+}
+
+.encuesta-star:hover {
+  color: #fbbf24;
+  transform: scale(1.1);
+}
+
+.encuesta-star--active {
+  color: #f59e0b;
+}
+
+.encuesta-stars-labels {
+  display: flex;
+  justify-content: space-between;
+  max-width: 280px;
+  margin: 0 auto;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.encuesta-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.encuesta-textarea:focus {
+  outline: none;
+  border-color: #0d9488;
+}
+
+.encuesta-char-count {
+  display: block;
+  text-align: right;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+.encuesta-error-message {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.encuesta-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.encuesta-btn {
+  padding: 0.875rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.encuesta-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.encuesta-btn--primary {
+  background: #0d9488;
+  color: white;
+}
+
+.encuesta-btn--primary:hover:not(:disabled) {
+  background: #0f766e;
+}
+
+.encuesta-btn--secondary {
+  background: transparent;
+  color: #6b7280;
+  border: 2px solid #e5e7eb;
+}
+
+.encuesta-btn--secondary:hover:not(:disabled) {
+  border-color: #0d9488;
+  color: #0d9488;
+}
+
+.encuesta-info {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  color: #9ca3af;
+}
+
+.encuesta-loading {
+  text-align: center;
+  color: #6b7280;
+  padding: 3rem;
+}
+
+.encuesta-error {
+  text-align: center;
+  padding: 2rem;
+}
+
+.encuesta-error-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.encuesta-error p {
+  color: #dc2626;
+  margin-bottom: 1.5rem;
+}
+
+.encuesta-success {
+  text-align: center;
+  padding: 2rem;
+}
+
+.encuesta-success-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.encuesta-success h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.75rem;
+}
+
+.encuesta-success p {
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.encuesta-redirect {
+  font-size: 0.875rem;
+  color: #0d9488 !important;
+}
+
+@media (max-width: 640px) {
+  .encuesta-page {
+    padding: 5rem 0.75rem 1rem;
+  }
+
+  .encuesta-container {
+    padding: 1.5rem;
+  }
+
+  .encuesta-star {
+    font-size: 2rem;
+  }
+}

@@ -2,7 +2,7 @@
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -14,6 +14,8 @@ class EstadoPedidoEnum(str, enum.Enum):
     enviado = "enviado"
     entregado = "entregado"
     cancelado = "cancelado"
+    en_devolucion = "en_devolucion"
+    devuelto = "devuelto"
 
 
 class CanalContactoEnum(str, enum.Enum):
@@ -56,6 +58,11 @@ class Pedido(Base):
         "EncuestaSatisfaccion", back_populates="pedido", uselist=False
     )
 
+    @property
+    def encuesta_id(self) -> int | None:
+        """Devuelve el ID de la encuesta asociada si existe."""
+        return self.encuesta.id if self.encuesta else None
+
 
 class ItemPedido(Base):
     __tablename__ = "items_pedido"
@@ -69,6 +76,12 @@ class ItemPedido(Base):
     producto_id = Column(
         Integer, ForeignKey("productos.id", ondelete="SET NULL"), nullable=True
     )
+    
+    # Snapshot de datos del producto al momento de la compra (RF10)
+    producto_nombre_snapshot = Column(String(255), nullable=True)
+    producto_sku_snapshot = Column(String(100), nullable=True)
+    producto_descripcion_snapshot = Column(Text, nullable=True)
+    producto_imagen_url_snapshot = Column(String(500), nullable=True)
 
     pedido = relationship("Pedido", back_populates="items")
     producto = relationship("Producto", back_populates="items_pedido")

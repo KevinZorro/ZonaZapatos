@@ -8,6 +8,9 @@ import ProtectedRoute from './components/ProtectedRoute'
 import SplashPage from './pages/SplashPage'
 import CatalogPage from './pages/CatalogPage'
 import ProductPage from './pages/ProductPage'
+import PedidosPage from './pages/client/PedidosPage'
+import PedidoDetallePage from './pages/client/PedidoDetallePage'
+import CarritoPage from './pages/client/CarritoPage'
 import ProfilePage from './pages/ProfilePage'
 import Login from './pages/auth/Login'
 import RegisterCliente from './pages/auth/RegisterCliente'
@@ -15,8 +18,27 @@ import RegisterEmpresa from './pages/auth/RegisterEmpresa'
 import ConfirmPage from './pages/auth/ConfirmPage'
 import EmpresaProductosPage from './pages/empresa/EmpresaProductosPage'
 import DashboardVentasPage from './pages/empresa/DashboardVentasPage'
+import SolicitudDevolucionPage from './pages/client/SolicitudDevolucionPage'
+import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
+import EncuestaPage from './pages/client/EncuestaPage'
+import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
+import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
+import EncuestaReminderModal from './components/EncuestaReminderModal'
+import { useAuth } from './context/AuthContext'
+import Analisis from './pages/Analisis' // 🔥 NUEVO
 
 import './App.css'
+
+// Componente wrapper para el modal de recordatorio de encuesta
+function EncuestaReminderWrapper() {
+  const { encuestaPendiente, clearEncuestaPendiente } = useAuth()
+  return encuestaPendiente ? (
+    <EncuestaReminderModal
+      encuesta={encuestaPendiente}
+      onClose={clearEncuestaPendiente}
+    />
+  ) : null
+}
 
 // Placeholder para rutas futuras
 const Placeholder = ({ title }) => (
@@ -45,6 +67,7 @@ function AppRoutes() {
       <main>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
+            
             {/* Splash / Onboarding */}
             <Route path="/" element={<SplashPage />} />
 
@@ -58,7 +81,7 @@ function AppRoutes() {
             <Route path="/registro/empresa" element={<RegisterEmpresa />} />
             <Route path="/auth/confirmar/:token" element={<ConfirmPage />} />
 
-            {/* Perfil — todos los roles autenticados */}
+            {/* Perfil */}
             <Route path="/perfil" element={
               <ProtectedRoute roles={['cliente', 'empresa', 'admin']}>
                 <ProfilePage />
@@ -68,7 +91,37 @@ function AppRoutes() {
             {/* Cliente */}
             <Route path="/pedidos" element={
               <ProtectedRoute roles={['cliente']}>
-                <Placeholder title="Mis Pedidos" />
+                <PedidosPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/pedidos/:id" element={
+              <ProtectedRoute roles={['cliente']}>
+                <PedidoDetallePage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/devoluciones/solicitar/:pedidoId" element={
+              <ProtectedRoute roles={['cliente']}>
+                <SolicitudDevolucionPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/mis-devoluciones" element={
+              <ProtectedRoute roles={['cliente']}>
+                <MisDevolucionesPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/encuestas/:encuestaId" element={
+              <ProtectedRoute roles={['cliente']}>
+                <EncuestaPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/carrito" element={
+              <ProtectedRoute roles={['cliente']}>
+                <CarritoPage />
               </ProtectedRoute>
             } />
 
@@ -78,19 +131,33 @@ function AppRoutes() {
                 <Placeholder title="Panel de Empresa" />
               </ProtectedRoute>
             } />
+
             <Route path="/empresa/productos" element={
               <ProtectedRoute roles={['empresa']}>
                 <EmpresaProductosPage />
               </ProtectedRoute>
             } />
+
             <Route path="/empresa/dashboard" element={
               <ProtectedRoute roles={['empresa']}>
                 <DashboardVentasPage />
               </ProtectedRoute>
             } />
+
+            {/* 🔥 AQUÍ ESTÁ TU CAMBIO IMPORTANTE */}
             <Route path="/empresa/analisis" element={
               <ProtectedRoute roles={['empresa']}>
-                <Placeholder title="Análisis y Predicción" />
+                <Analisis />  {/* 👈 reemplaza el Placeholder */}
+              </ProtectedRoute>
+            } />
+            <Route path="/empresa/devoluciones" element={
+              <ProtectedRoute roles={['empresa']}>
+                <GestionDevolucionesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/empresa/devoluciones/:id" element={
+              <ProtectedRoute roles={['empresa']}>
+                <DetalleDevolucionPage />
               </ProtectedRoute>
             } />
 
@@ -102,15 +169,18 @@ function AppRoutes() {
                 <p style={{ color: '#6B7280', marginTop: '0.5rem' }}>No tienes permiso para ver esta página.</p>
               </div>
             } />
+
             <Route path="*" element={
               <div style={{ padding: '6rem 2rem', textAlign: 'center' }}>
                 <span style={{ fontSize: '4rem' }}>🔍</span>
                 <h1 style={{ marginTop: '1rem', color: '#1A1A1A' }}>Página no encontrada</h1>
               </div>
             } />
+
           </Routes>
         </AnimatePresence>
       </main>
+      <EncuestaReminderWrapper />
     </>
   )
 }

@@ -16,6 +16,7 @@ from app.productos.router import router as productos_router
 from app.pedidos.router import router as pedidos_router
 from app.encuestas.router import router as encuestas_router
 from app.dashboard.router import router as dashboard_router
+from app.devoluciones.router import router as devoluciones_router
 
 # ── Import all models so Alembic autogenerate picks them up ──────────────────
 from app.usuarios.models import Usuario, Empresa, Cliente, Administrador  # noqa: F401
@@ -64,6 +65,7 @@ app.include_router(productos_router)
 app.include_router(pedidos_router)
 app.include_router(encuestas_router)
 app.include_router(dashboard_router)
+app.include_router(devoluciones_router)
 
 
 # ── Crear tablas al arrancar (desarrollo) ────────────────────────────────────

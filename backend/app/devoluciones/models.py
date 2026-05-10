@@ -26,6 +26,7 @@ class Devolucion(Base):
     id = Column(Integer, primary_key=True, index=True)
     motivo = Column(String(255), nullable=False)
     comentario = Column(Text, nullable=True)
+    respuesta_empresa = Column(Text, nullable=True)  # Respuesta de la empresa al aprobar/rechazar
     estado = Column(
         Enum(EstadoDevolucionEnum),
         default=EstadoDevolucionEnum.solicitada,
@@ -44,6 +45,9 @@ class Devolucion(Base):
     evidencias = relationship(
         "EvidenciaDevolucion", back_populates="devolucion", cascade="all, delete-orphan"
     )
+    items = relationship(
+        "ItemDevolucion", back_populates="devolucion", cascade="all, delete-orphan"
+    )
 
 
 class EvidenciaDevolucion(Base):
@@ -58,3 +62,32 @@ class EvidenciaDevolucion(Base):
     )
 
     devolucion = relationship("Devolucion", back_populates="evidencias")
+
+
+class ItemDevolucion(Base):
+    """Items específicos de un pedido que se devuelven (cada producto con su motivo)."""
+    __tablename__ = "devolucion_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    devolucion_id = Column(
+        Integer, ForeignKey("devoluciones.id", ondelete="CASCADE"), nullable=False
+    )
+    item_pedido_id = Column(
+        Integer, ForeignKey("items_pedido.id"), nullable=True
+    )
+    producto_id = Column(
+        Integer, ForeignKey("productos.id"), nullable=False
+    )
+
+    # Snapshot inmutable del producto (copia de los datos al momento de la compra)
+    producto_nombre = Column(String(255), nullable=False)
+    producto_sku = Column(String(100), nullable=True)
+    producto_imagen_url = Column(String(500), nullable=True)
+
+    cantidad = Column(Integer, nullable=False, default=1)
+    motivo = Column(String(255), nullable=False)  # Motivo específico para este item
+    comentario = Column(Text, nullable=True)  # Comentario específico para este item
+
+    devolucion = relationship("Devolucion", back_populates="items")
+    producto = relationship("Producto")
+    item_pedido = relationship("ItemPedido")

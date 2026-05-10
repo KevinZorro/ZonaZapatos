@@ -639,12 +639,24 @@ def create_orders_surveys_and_returns(session, clientes: list[Cliente], empresas
             session.add(pedido)
             session.flush()
 
+            # Obtener imagen del producto desde media_archivos si existe
+            imagen_url = None
+            if product.media:
+                for media in product.media:
+                    if media.tipo.value == 'imagen':
+                        imagen_url = media.cloudinary_url
+                        break
+            
             session.add(
                 ItemPedido(
                     cantidad=quantity,
                     precio_unitario=product.precio,
                     pedido_id=pedido.id,
                     producto_id=product.id,
+                    # Guardar snapshot inmutable del producto (RF10)
+                    producto_nombre_snapshot=product.nombre,
+                    producto_descripcion_snapshot=product.descripcion,
+                    producto_imagen_url_snapshot=imagen_url,
                 )
             )
             order_count += 1
