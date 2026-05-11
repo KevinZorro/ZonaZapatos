@@ -8,22 +8,17 @@ const api = axios.create({
 // Attach JWT token on every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('zz_token')
-  console.log('DEBUG API: Token en localStorage:', token ? 'presente' : 'NO presente')
-  
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
-    console.log('DEBUG API: Authorization header set')
-  } else {
-    console.log('DEBUG API: NO se envió token - usuario no autenticado')
   }
-  
+
   // Si se envía FormData, eliminar Content-Type para que Axios lo establezca automáticamente
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type']
     delete config.headers['content-type']
-    console.log('DEBUG API: Content-Type eliminado para FormData')
   }
-  
+
   return config
 })
 
