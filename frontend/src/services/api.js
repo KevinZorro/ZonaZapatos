@@ -40,4 +40,13 @@ api.interceptors.response.use(
   }
 )
 
+// Predicción de ventas
+export const predecirVentas = (productoId, precio, talla, color) =>
+  api.get(`/empresa/prediccion/${productoId}`, {
+    params: { precio, talla, color,
+      mes: new Date().getMonth() + 1,
+      dia_semana: new Date().getDay()
+    }
+  })
+
 export default api

@@ -1,12 +1,24 @@
+<<<<<<< Updated upstream
 """Dashboard de ventas — RF12 — Implementación Phase 6."""
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+=======
+"""Dashboard + Analisis + Prediccion router."""
+import datetime as _dt
+
+from fastapi import APIRouter, Depends, HTTPException
+>>>>>>> Stashed changes
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from typing import List
+import joblib
+import numpy as np
 
 from app.core.database import get_db
+<<<<<<< Updated upstream
 from app.core.security import get_current_user, require_rol
 from app.pedidos.models import EstadoPedidoEnum, ItemPedido, Pedido
 from app.productos.models import Producto
@@ -14,10 +26,90 @@ from app.usuarios.models import Empresa
 from app.dashboard.services import analizar_devoluciones
 from typing import Optional
 from datetime import date
+=======
+from app.core.security import require_rol, get_current_user
+>>>>>>> Stashed changes
 
 router = APIRouter(prefix="/empresa", tags=["dashboard", "analisis", "prediccion"])
 
 _P7 = "Implementación pendiente — Fase 7"
+
+MESES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
+}
+
+FEATURES = ["producto_id", "precio", "talla", "color", "mes", "semana"]
+
+NOMBRES_FEATURES = {
+    "producto_id": "identidad del producto",
+    "precio":      "precio de venta",
+    "talla":       "talla del zapato",
+    "color":       "color del zapato",
+    "mes":         "mes del año",
+    "semana":      "semana del año",
+}
+
+
+def nivel_demanda(prediccion: float):
+    if prediccion >= 10:
+        return "muy alta", "Asegúrate de tener suficiente stock. Es uno de tus productos con mayor rotación."
+    if prediccion >= 6:
+        return "alta", "Buen momento para promocionarlo. Tiene buena salida este período."
+    if prediccion >= 3:
+        return "moderada", "Demanda estable. Mantén un stock básico disponible."
+    return "baja", "Poca rotación esperada. Evalúa si vale la pena hacer una promoción para activarlo."
+
+
+def generar_explicaciones(ranking, ahora, producto):
+    explicaciones = []
+    for f, v in ranking[:3]:
+        pct = round(v * 100)
+        if f == "semana":
+            explicaciones.append(
+                f"La semana del año explica el {pct}% de la predicción — "
+                "el modelo detectó que ciertos períodos del año tienen más ventas que otros."
+            )
+        elif f == "mes":
+            mes_nombre = MESES.get(ahora.month, "este mes")
+            tendencia = "buena" if ahora.month in [5, 10, 11, 12] else "demanda regular"
+            explicaciones.append(
+                f"El mes influye un {pct}%. Estamos en {mes_nombre}, "
+                f"que históricamente tiene {tendencia} en calzado."
+            )
+        elif f == "precio":
+            precio = producto.precio or 0
+            rango = "accesible y atrae más compradores" if precio < 300000 else "premium con menor volumen pero mayor margen"
+            explicaciones.append(
+                f"El precio (${int(precio):,}) tiene un {pct}% de peso — es un producto {rango}."
+            )
+        elif f == "talla":
+            explicaciones.append(
+                f"La talla disponible ({producto.talla}) influye un {pct}% — "
+                "entre más tallas cubras, más clientes puedes capturar."
+            )
+        elif f == "color":
+            explicaciones.append(
+                f"El color ({producto.color}) tiene un {pct}% de influencia "
+                "en la demanda histórica de este producto."
+            )
+        elif f == "producto_id":
+            explicaciones.append(
+                f"El historial propio de este producto explica el {pct}% — "
+                "el modelo aprendió su patrón de ventas específico."
+            )
+    return explicaciones
+
+
+def predecir_4_semanas(modelo, producto_id, precio, talla_enc, color_enc, ahora):
+    semana_actual = ahora.isocalendar()[1]
+    total = 0.0
+    for i in range(4):
+        semana = ((semana_actual + i - 1) % 52) + 1
+        entrada = np.array([[producto_id, float(precio), talla_enc, color_enc, ahora.month, semana]])
+        total += modelo.predict(entrada)[0]
+    return total
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

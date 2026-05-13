@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
-import { useCarrito } from '../context/CarritoContext'
-import './Navbar.css'
+import { useState, useEffect } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
+import { useCarrito } from "../context/CarritoContext";
+import "./Navbar.css";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
@@ -43,7 +43,9 @@ const toggleAlertas = () => {
 }
 
   // Cierra el menú si cambia la ruta
-  useEffect(() => { setMenuOpen(false) }, [navigate])
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [navigate]);
 
   const handleLogout = async () => {
     setMenuOpen(false)
@@ -53,13 +55,23 @@ const toggleAlertas = () => {
 
   const navLinks = (
     <>
-      <NavLink to="/catalogo" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
+      <NavLink
+        to="/catalogo"
+        className={({ isActive }) =>
+          `nb-link ${isActive ? "nb-link--active" : ""}`
+        }
+      >
         Catálogo
       </NavLink>
 
-      {isAuthenticated && user?.rol === 'empresa' && (
+      {isAuthenticated && user?.rol === "empresa" && (
         <>
-          <NavLink to="/empresa/productos" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
+          <NavLink
+            to="/empresa/productos"
+            className={({ isActive }) =>
+              `nb-link ${isActive ? "nb-link--active" : ""}`
+            }
+          >
             Mis Productos
           </NavLink>
           <NavLink to="/empresa/devoluciones" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
@@ -74,44 +86,55 @@ const toggleAlertas = () => {
         </>
       )}
 
-      {isAuthenticated && user?.rol === 'cliente' && (
+      {isAuthenticated && user?.rol === "cliente" && (
         <>
-          <NavLink to="/pedidos" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
+          <NavLink
+            to="/pedidos"
+            className={({ isActive }) =>
+              `nb-link ${isActive ? "nb-link--active" : ""}`
+            }
+          >
             Mis Pedidos
           </NavLink>
           <NavLink to="/mis-devoluciones" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}>
             Mis Devoluciones
           </NavLink>
 
-          <NavLink to="/carrito" className={({ isActive }) => `nb-link ${isActive ? 'nb-link--active' : ''}`}
-            style={{ position: 'relative' }}
+          <NavLink
+            to="/carrito"
+            className={({ isActive }) =>
+              `nb-link ${isActive ? "nb-link--active" : ""}`
+            }
+            style={{ position: "relative" }}
           >
             Carrito
             {totalItems > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-6px',
-                right: '-10px',
-                background: 'var(--magenta)',
-                color: '#fff',
-                fontSize: '10px',
-                fontWeight: 800,
-                width: '16px',
-                height: '16px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                lineHeight: 1,
-              }}>
-                {totalItems > 9 ? '9+' : totalItems}
+              <span
+                style={{
+                  position: "absolute",
+                  top: "-6px",
+                  right: "-10px",
+                  background: "var(--magenta)",
+                  color: "#fff",
+                  fontSize: "10px",
+                  fontWeight: 800,
+                  width: "16px",
+                  height: "16px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  lineHeight: 1,
+                }}
+              >
+                {totalItems > 9 ? "9+" : totalItems}
               </span>
             )}
           </NavLink>
         </>
       )}
     </>
-  )
+  );
 
   const authButtons = isAuthenticated ? (
     <>
@@ -180,14 +203,21 @@ const toggleAlertas = () => {
     </>
   ) : (
     <>
-      <Link to="/login" className="nb-link">Iniciar sesión</Link>
-      <Link to="/registro/cliente" className="nb-btn nb-btn--primary">Registrarse</Link>
+      <Link to="/login" className="nb-link">
+        Iniciar sesión
+      </Link>
+      <Link to="/registro/cliente" className="nb-btn nb-btn--primary">
+        Registrarse
+      </Link>
     </>
-  )
+  );
 
   return (
     <>
-      <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`} role="navigation">
+      <nav
+        className={`navbar ${scrolled ? "navbar--scrolled" : ""}`}
+        role="navigation"
+      >
         <div className="navbar__inner container">
           <Link to="/" className="navbar__brand">
             <span className="navbar__brand-icon">👟</span>
@@ -208,9 +238,15 @@ const toggleAlertas = () => {
             aria-label="Abrir menú"
             aria-expanded={menuOpen}
           >
-            <span className={`ham-line ${menuOpen ? 'ham-line--open-1' : ''}`} />
-            <span className={`ham-line ${menuOpen ? 'ham-line--open-2' : ''}`} />
-            <span className={`ham-line ${menuOpen ? 'ham-line--open-3' : ''}`} />
+            <span
+              className={`ham-line ${menuOpen ? "ham-line--open-1" : ""}`}
+            />
+            <span
+              className={`ham-line ${menuOpen ? "ham-line--open-2" : ""}`}
+            />
+            <span
+              className={`ham-line ${menuOpen ? "ham-line--open-3" : ""}`}
+            />
           </button>
         </div>
       </nav>
@@ -227,10 +263,10 @@ const toggleAlertas = () => {
             />
             <motion.div
               className="nb-drawer"
-              initial={{ x: '100%' }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
             >
               <div className="nb-drawer__header">
                 <span className="nb-drawer__brand">
@@ -244,10 +280,16 @@ const toggleAlertas = () => {
               </nav>
 
               <div className="nb-drawer__auth">
-                {isAuthenticated
-                  ? <button onClick={handleLogout} className="nb-btn nb-btn--danger">Cerrar sesión</button>
-                  : authButtons
-                }
+                {isAuthenticated ? (
+                  <button
+                    onClick={handleLogout}
+                    className="nb-btn nb-btn--danger"
+                  >
+                    Cerrar sesión
+                  </button>
+                ) : (
+                  authButtons
+                )}
               </div>
             </motion.div>
           </>
