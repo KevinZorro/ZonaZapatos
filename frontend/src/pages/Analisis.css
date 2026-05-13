@@ -1,0 +1,133 @@
+/* Analisis.css */
+
+.analisis-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.analisis-title {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.analisis-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 25px;
+  flex-wrap: wrap; /* 👈 mejora en pantallas pequeñas */
+}
+
+.analisis-form input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.analisis-form button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #007bff;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.analisis-form button:hover {
+  background: #0056b3;
+}
+
+.analisis-msg {
+  font-size: 1rem;
+  color: #555;
+  margin-top: 15px;
+}
+
+.analisis-error {
+  font-size: 1rem;
+  color: #d9534f;
+  margin-top: 15px;
+}
+
+/* CONTENEDOR GENERAL RESULTADOS */
+.analisis-resultados {
+  margin-top: 25px;
+}
+
+/* GRID DE 3 COLUMNAS */
+.analisis-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  text-align: left;
+}
+
+/* TARJETAS DE CADA PRODUCTO */
+.analisis-card {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analisis-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.analisis-card h3 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.analisis-card ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.analisis-card li {
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+}
+
+/* GRÁFICA (SE MANTIENE IGUAL) */
+.grafica-global {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.grafica-global h2 {
+  margin-bottom: 20px;
+  color: #007bff;
+}
+
+.grafica-global canvas {
+  max-width: 700px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .analisis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .analisis-grid {
+    grid-template-columns: 1fr;
+  }
+}
