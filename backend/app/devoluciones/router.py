@@ -393,6 +393,18 @@ async def actualizar_estado_devolucion(
     if current_user_rol != "empresa":
         raise HTTPException(status_code=403, detail="No autorizado")
     
+    # Obtener el ID del usuario desde el payload JWT (sub es usuario_id, no empresa_id)
+    usuario_id = int(current_user_payload.get("sub"))
+    
+    # Obtener la empresa asociada al usuario
+    from app.usuarios.models import Empresa
+    empresa = db.query(Empresa).filter(Empresa.usuario_id == usuario_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    empresa_id = empresa.id
+    print(f"DEBUG: usuario_id={usuario_id}, empresa_id={empresa_id}")
+    
     # Validar estado
     estados_validos = ["solicitada", "en_revision", "aprobada", "rechazada"]
     if estado_update.estado not in estados_validos:
@@ -401,13 +413,16 @@ async def actualizar_estado_devolucion(
             detail=f"Estado no válido. Estados válidos: {', '.join(estados_validos)}"
         )
     
-    # Buscar la devolución
-    devolucion = db.query(Devolucion).filter(
-        Devolucion.id == devolucion_id
-    ).first()
+    # Buscar la devolución verificando que pertenezca a productos de esta empresa
+    # Relación: Devolucion → Pedido → ItemPedido → Producto → Empresa
+    # Usar DISTINCT para evitar duplicados por múltiples items en un pedido
+    devolucion = db.query(Devolucion).join(Pedido).join(ItemPedido).join(Producto).filter(
+        Devolucion.id == devolucion_id,
+        Producto.empresa_id == empresa_id
+    ).distinct().first()
     
     if not devolucion:
-        raise HTTPException(status_code=404, detail="Devolución no encontrada")
+        raise HTTPException(status_code=404, detail="Devolución no encontrada o no autorizada")
     
     # Actualizar estado de la devolución
     devolucion.estado = estado_update.estado
@@ -462,7 +477,26 @@ async def listar_devoluciones(
     if current_user_rol != "empresa":
         raise HTTPException(status_code=403, detail="No autorizado")
     
-    devoluciones = db.query(Devolucion).offset(skip).limit(limit).all()
+    # Obtener el ID del usuario desde el payload JWT (sub es usuario_id, no empresa_id)
+    usuario_id = int(current_user_payload.get("sub"))
+    
+    # Obtener la empresa asociada al usuario
+    from app.usuarios.models import Empresa
+    empresa = db.query(Empresa).filter(Empresa.usuario_id == usuario_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    empresa_id = empresa.id
+    print(f"DEBUG: usuario_id={usuario_id}, empresa_id={empresa_id}")
+    
+    # Filtrar devoluciones que pertenezcan a productos de esta empresa
+    # Relación: Devolucion → Pedido → ItemPedido → Producto → Empresa
+    # Usar DISTINCT para evitar duplicados por múltiples items en un pedido
+    devoluciones = db.query(Devolucion).join(Pedido).join(ItemPedido).join(Producto).filter(
+        Producto.empresa_id == empresa_id
+    ).distinct().offset(skip).limit(limit).all()
+    
+    print(f"DEBUG: Devoluciones encontradas para empresa {empresa_id}: {len(devoluciones)}")
     
     # Procesar cada devolución a través del schema
     return [
@@ -490,10 +524,27 @@ async def listar_devoluciones_pendientes(
     if current_user_rol != "empresa":
         raise HTTPException(status_code=403, detail="No autorizado")
     
-    # Buscar devoluciones con estado 'solicitada'
-    devoluciones = db.query(Devolucion).filter(
-        Devolucion.estado == "solicitada"
-    ).order_by(Devolucion.fecha_solicitud.desc()).all()
+    # Obtener el ID del usuario desde el payload JWT (sub es usuario_id, no empresa_id)
+    usuario_id = int(current_user_payload.get("sub"))
+    
+    # Obtener la empresa asociada al usuario
+    from app.usuarios.models import Empresa
+    empresa = db.query(Empresa).filter(Empresa.usuario_id == usuario_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    empresa_id = empresa.id
+    print(f"DEBUG: usuario_id={usuario_id}, empresa_id={empresa_id}")
+    
+    # Buscar devoluciones con estado 'solicitada' que pertenezcan a productos de esta empresa
+    # Relación: Devolucion → Pedido → ItemPedido → Producto → Empresa
+    # Usar DISTINCT para evitar duplicados por múltiples items en un pedido
+    devoluciones = db.query(Devolucion).join(Pedido).join(ItemPedido).join(Producto).filter(
+        Devolucion.estado == "solicitada",
+        Producto.empresa_id == empresa_id
+    ).distinct().order_by(Devolucion.fecha_solicitud.desc()).all()
+    
+    print(f"DEBUG: Devoluciones encontradas para empresa {empresa_id}: {len(devoluciones)}")
     
     resultado = []
     for dev in devoluciones:
@@ -549,12 +600,29 @@ async def obtener_detalle_devolucion_empresa(
     if current_user_rol != "empresa":
         raise HTTPException(status_code=403, detail="No autorizado")
     
-    # Buscar la devolución con sus items y item_pedido relacionado (eager loading)
-    devolucion = db.query(Devolucion).options(
+    # Obtener el ID del usuario desde el payload JWT (sub es usuario_id, no empresa_id)
+    usuario_id = int(current_user_payload.get("sub"))
+    
+    # Obtener la empresa asociada al usuario
+    from app.usuarios.models import Empresa
+    empresa = db.query(Empresa).filter(Empresa.usuario_id == usuario_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    empresa_id = empresa.id
+    print(f"DEBUG: usuario_id={usuario_id}, empresa_id={empresa_id}")
+    
+    # Buscar la devolución verificando que pertenezca a productos de esta empresa
+    # Relación: Devolucion → Pedido → ItemPedido → Producto → Empresa
+    # Usar DISTINCT para evitar duplicados por múltiples items en un pedido
+    devolucion = db.query(Devolucion).join(Pedido).join(ItemPedido).join(Producto).options(
         joinedload(Devolucion.items).joinedload(ItemDevolucion.item_pedido)
-    ).filter(Devolucion.id == devolucion_id).first()
+    ).filter(
+        Devolucion.id == devolucion_id,
+        Producto.empresa_id == empresa_id
+    ).distinct().first()
     if not devolucion:
-        raise HTTPException(status_code=404, detail="Devolución no encontrada")
+        raise HTTPException(status_code=404, detail="Devolución no encontrada o no autorizada")
     
     # Obtener el pedido con sus items y productos (eager loading)
     pedido = db.query(Pedido).options(
