@@ -2,6 +2,8 @@
 Zapatos Backend — FastAPI Application Entry Point
 TechSketch Labs / AGI — 2025
 """
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -40,12 +42,11 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-origins = [
+origins = list({
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://192.168.101.3:5173",
     settings.frontend_url,
-]
+})
 
 app.add_middleware(
     CORSMiddleware,
@@ -55,8 +56,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Static files ──────────────────────────────────────────────────────────────
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# ── Static files (solo si existe la carpeta) ──────────────────────────────────
+if os.path.isdir("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
