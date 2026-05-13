@@ -69,8 +69,18 @@ function ProductoModal({ producto, onClose, onSaved }) {
 
   const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+
   const handleFiles = (e) => {
-    setFiles(Array.from(e.target.files || []))
+    const selected = Array.from(e.target.files || [])
+    const oversized = selected.filter(f => f.size > MAX_FILE_SIZE)
+    if (oversized.length > 0) {
+      setError(`El archivo "${oversized[0].name}" supera el límite de 10 MB. Por favor usa una imagen más pequeña.`)
+      e.target.value = ''
+      return
+    }
+    setError('')
+    setFiles(selected)
   }
 
   useEffect(() => {
@@ -201,7 +211,7 @@ function ProductoModal({ producto, onClose, onSaved }) {
               <label className="ep-upload-box">
                 <input className="ep-upload-input" type="file" accept={MEDIA_ACCEPT} multiple onChange={handleFiles} />
                 <span className="ep-upload-title">Seleccionar imágenes, `.glb` o `.gltf`</span>
-                <span className="ep-upload-subtitle">Se subirán a Cloudinary al guardar el producto.</span>
+                <span className="ep-upload-subtitle">Máximo 10 MB por archivo · Se subirán a Cloudinary al guardar.</span>
               </label>
 
               {files.length > 0 && (

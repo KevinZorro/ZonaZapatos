@@ -325,7 +325,16 @@ def upload_producto_media(
     empresa = _get_empresa(int(payload["sub"]), db)
     producto = _get_producto_empresa(producto_id, empresa.id, db)
 
+    MAX_SIZE = 10 * 1024 * 1024  # 10 MB
     for file in files:
+        # Leer contenido para verificar tamaño antes de subir
+        contents = file.file.read()
+        if len(contents) > MAX_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f'El archivo "{file.filename}" supera el límite de 10 MB ({len(contents) // (1024*1024)} MB). Usa una imagen más pequeña.'
+            )
+        file.file.seek(0)  # Resetear cursor para que Cloudinary pueda leerlo
         tipo, formato = _get_media_kind(file)
         result = upload_file(file.file, folder=f"productos/{empresa.id}/{producto.id}")
         producto.media.append(
