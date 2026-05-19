@@ -1,18 +1,11 @@
 """Dashboard de ventas — RF12 — Implementación Phase 6."""
 from collections import defaultdict
+import datetime as _dt
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-"""Dashboard + Analisis + Prediccion router."""
-import datetime as _dt
-
-from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from typing import List
-import joblib
-import numpy as np
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_rol
@@ -22,88 +15,15 @@ from app.usuarios.models import Empresa
 from app.dashboard.services import analizar_devoluciones
 from typing import Optional
 from datetime import date
-from app.core.security import require_rol, get_current_user
+
+from pydantic import BaseModel
+from typing import List
+import joblib
+import numpy as np
 
 router = APIRouter(prefix="/empresa", tags=["dashboard", "analisis", "prediccion"])
 
 _P7 = "Implementación pendiente — Fase 7"
-
-MESES = {
-    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
-    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
-    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
-}
-
-FEATURES = ["producto_id", "precio", "talla", "color", "mes", "semana"]
-
-NOMBRES_FEATURES = {
-    "producto_id": "identidad del producto",
-    "precio":      "precio de venta",
-    "talla":       "talla del zapato",
-    "color":       "color del zapato",
-    "mes":         "mes del año",
-    "semana":      "semana del año",
-}
-
-
-def nivel_demanda(prediccion: float):
-    if prediccion >= 10:
-        return "muy alta", "Asegúrate de tener suficiente stock. Es uno de tus productos con mayor rotación."
-    if prediccion >= 6:
-        return "alta", "Buen momento para promocionarlo. Tiene buena salida este período."
-    if prediccion >= 3:
-        return "moderada", "Demanda estable. Mantén un stock básico disponible."
-    return "baja", "Poca rotación esperada. Evalúa si vale la pena hacer una promoción para activarlo."
-
-
-def generar_explicaciones(ranking, ahora, producto):
-    explicaciones = []
-    for f, v in ranking[:3]:
-        pct = round(v * 100)
-        if f == "semana":
-            explicaciones.append(
-                f"La semana del año explica el {pct}% de la predicción — "
-                "el modelo detectó que ciertos períodos del año tienen más ventas que otros."
-            )
-        elif f == "mes":
-            mes_nombre = MESES.get(ahora.month, "este mes")
-            tendencia = "buena" if ahora.month in [5, 10, 11, 12] else "demanda regular"
-            explicaciones.append(
-                f"El mes influye un {pct}%. Estamos en {mes_nombre}, "
-                f"que históricamente tiene {tendencia} en calzado."
-            )
-        elif f == "precio":
-            precio = producto.precio or 0
-            rango = "accesible y atrae más compradores" if precio < 300000 else "premium con menor volumen pero mayor margen"
-            explicaciones.append(
-                f"El precio (${int(precio):,}) tiene un {pct}% de peso — es un producto {rango}."
-            )
-        elif f == "talla":
-            explicaciones.append(
-                f"La talla disponible ({producto.talla}) influye un {pct}% — "
-                "entre más tallas cubras, más clientes puedes capturar."
-            )
-        elif f == "color":
-            explicaciones.append(
-                f"El color ({producto.color}) tiene un {pct}% de influencia "
-                "en la demanda histórica de este producto."
-            )
-        elif f == "producto_id":
-            explicaciones.append(
-                f"El historial propio de este producto explica el {pct}% — "
-                "el modelo aprendió su patrón de ventas específico."
-            )
-    return explicaciones
-
-
-def predecir_4_semanas(modelo, producto_id, precio, talla_enc, color_enc, ahora):
-    semana_actual = ahora.isocalendar()[1]
-    total = 0.0
-    for i in range(4):
-        semana = ((semana_actual + i - 1) % 52) + 1
-        entrada = np.array([[producto_id, float(precio), talla_enc, color_enc, ahora.month, semana]])
-        total += modelo.predict(entrada)[0]
-    return total
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -313,8 +233,205 @@ def get_analisis_devoluciones(
 
 
 # ── Stub: Predicción de ventas (Phase 7 — Javier) ────────────────────────────
-@router.get(
-    "/prediccion/{producto_id}", dependencies=[Depends(require_rol("empresa"))]
-)
-def get_prediccion(producto_id: int, db: Session = Depends(get_db)):
-    raise HTTPException(status_code=501, detail=_P7)
+
+MESES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
+}
+
+FEATURES = ["producto_id", "precio", "talla", "color", "mes", "semana"]
+
+NOMBRES_FEATURES = {
+    "producto_id": "identidad del producto",
+    "precio":      "precio de venta",
+    "talla":       "talla del zapato",
+    "color":       "color del zapato",
+    "mes":         "mes del año",
+    "semana":      "semana del año",
+}
+
+
+def nivel_demanda(prediccion: float):
+    if prediccion >= 10:
+        return "muy alta", "Asegúrate de tener suficiente stock. Es uno de tus productos con mayor rotación."
+    if prediccion >= 6:
+        return "alta", "Buen momento para promocionarlo. Tiene buena salida este período."
+    if prediccion >= 3:
+        return "moderada", "Demanda estable. Mantén un stock básico disponible."
+    return "baja", "Poca rotación esperada. Evalúa si vale la pena hacer una promoción para activarlo."
+
+
+def generar_explicaciones(ranking, ahora, producto):
+    explicaciones = []
+    for f, v in ranking[:3]:
+        pct = round(v * 100)
+        if f == "semana":
+            explicaciones.append(
+                f"La semana del año explica el {pct}% de la predicción — "
+                "el modelo detectó que ciertos períodos del año tienen más ventas que otros."
+            )
+        elif f == "mes":
+            mes_nombre = MESES.get(ahora.month, "este mes")
+            tendencia = "buena" if ahora.month in [5, 10, 11, 12] else "demanda regular"
+            explicaciones.append(
+                f"El mes influye un {pct}%. Estamos en {mes_nombre}, "
+                f"que históricamente tiene {tendencia} en calzado."
+            )
+        elif f == "precio":
+            precio = producto.precio or 0
+            rango = "accesible y atrae más compradores" if precio < 300000 else "premium con menor volumen pero mayor margen"
+            explicaciones.append(
+                f"El precio (${int(precio):,}) tiene un {pct}% de peso — es un producto {rango}."
+            )
+        elif f == "talla":
+            explicaciones.append(
+                f"La talla disponible ({producto.talla}) influye un {pct}% — "
+                "entre más tallas cubras, más clientes puedes capturar."
+            )
+        elif f == "color":
+            explicaciones.append(
+                f"El color ({producto.color}) tiene un {pct}% de influencia "
+                "en la demanda histórica de este producto."
+            )
+        elif f == "producto_id":
+            explicaciones.append(
+                f"El historial propio de este producto explica el {pct}% — "
+                "el modelo aprendió su patrón de ventas específico."
+            )
+    return explicaciones
+
+
+def predecir_4_semanas(modelo, producto_id, precio, talla_enc, color_enc, ahora):
+    semana_actual = ahora.isocalendar()[1]
+    total = 0.0
+    for i in range(4):
+        semana = ((semana_actual + i - 1) % 52) + 1
+        entrada = np.array([[producto_id, float(precio), talla_enc, color_enc, ahora.month, semana]])
+        total += modelo.predict(entrada)[0]
+    return total
+
+
+@router.get("/prediccion/{producto_id}", dependencies=[Depends(require_rol("empresa"))])
+def get_prediccion(
+    producto_id: int,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(get_current_user),
+):
+    from app.usuarios.models import Empresa
+    from app.productos.models import Producto
+
+    usuario_id = int(payload.get("sub"))
+    empresa = db.query(Empresa).filter(Empresa.usuario_id == usuario_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada.")
+
+    carpeta = f"static/models/empresa_{empresa.id}"
+    try:
+        modelo   = joblib.load(f"{carpeta}/prediccion_ventas.pkl")
+        le_talla = joblib.load(f"{carpeta}/encoder_talla.pkl")
+        le_color = joblib.load(f"{carpeta}/encoder_color.pkl")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Modelo no disponible para esta empresa.")
+
+    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado.")
+
+    talla = str(producto.talla) if producto.talla else "N/A"
+    color = str(producto.color) if producto.color else "N/A"
+
+    try:
+        talla_enc = le_talla.transform([talla])[0]
+    except Exception:
+        talla_enc = 0
+    try:
+        color_enc = le_color.transform([color])[0]
+    except Exception:
+        color_enc = 0
+
+    ahora      = _dt.datetime.now()
+    prediccion = predecir_4_semanas(modelo, producto_id, producto.precio or 0, talla_enc, color_enc, ahora)
+
+    importancias = modelo.feature_importances_
+    ranking  = sorted(zip(FEATURES, importancias), key=lambda x: x[1], reverse=True)
+    factores = [f"{NOMBRES_FEATURES[f]} ({round(v*100)}% de influencia)" for f, v in ranking[:3]]
+
+    nivel, consejo = nivel_demanda(prediccion)
+    explicaciones  = generar_explicaciones(ranking, ahora, producto)
+
+    return {
+        "producto_id":          producto_id,
+        "unidades_estimadas":   round(float(prediccion), 1),
+        "mensaje":              f"Se estiman ~{round(prediccion)} unidades vendidas en las próximas 4 semanas",
+        "factores_principales": factores,
+        "nivel_demanda":        nivel,
+        "consejo":              consejo,
+        "explicacion_factores": explicaciones,
+    }
+
+
+class PrediccionConjuntoRequest(BaseModel):
+    producto_ids: List[int]
+
+
+@router.post("/prediccion/conjunto", dependencies=[Depends(require_rol("empresa"))])
+def predecir_conjunto(
+    body: PrediccionConjuntoRequest,
+    db: Session = Depends(get_db),
+    payload: dict = Depends(get_current_user),
+):
+    from app.usuarios.models import Empresa
+    from app.productos.models import Producto
+
+    usuario_id = int(payload.get("sub"))
+    empresa = db.query(Empresa).filter(Empresa.usuario_id == usuario_id).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada.")
+
+    carpeta = f"static/models/empresa_{empresa.id}"
+    try:
+        modelo   = joblib.load(f"{carpeta}/prediccion_ventas.pkl")
+        le_talla = joblib.load(f"{carpeta}/encoder_talla.pkl")
+        le_color = joblib.load(f"{carpeta}/encoder_color.pkl")
+    except Exception:
+        raise HTTPException(status_code=503, detail="Modelo no disponible para esta empresa.")
+
+    ahora      = _dt.datetime.now()
+    resultados = []
+
+    for pid in body.producto_ids:
+        producto = db.query(Producto).filter(Producto.id == pid).first()
+        if not producto:
+            continue
+
+        talla = str(producto.talla) if producto.talla else "N/A"
+        color = str(producto.color) if producto.color else "N/A"
+
+        try:
+            talla_enc = le_talla.transform([talla])[0]
+        except Exception:
+            talla_enc = 0
+        try:
+            color_enc = le_color.transform([color])[0]
+        except Exception:
+            color_enc = 0
+
+        total = predecir_4_semanas(modelo, pid, producto.precio or 0, talla_enc, color_enc, ahora)
+
+        importancias = modelo.feature_importances_
+        ranking  = sorted(zip(FEATURES, importancias), key=lambda x: x[1], reverse=True)
+        factores = [f"{NOMBRES_FEATURES[f]} ({round(v*100)}%)" for f, v in ranking[:3]]
+        nivel, consejo = nivel_demanda(total)
+
+        resultados.append({
+            "producto_id":          pid,
+            "nombre":               producto.nombre,
+            "unidades_estimadas":   round(float(total), 1),
+            "factores_principales": factores,
+            "nivel_demanda":        nivel,
+            "consejo":              consejo,
+        })
+
+    resultados.sort(key=lambda x: x["unidades_estimadas"], reverse=True)
+    return {"predicciones": resultados}

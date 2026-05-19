@@ -26,9 +26,7 @@ import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
 import EncuestaReminderModal from './components/EncuestaReminderModal'
 import { useAuth } from './context/AuthContext'
 import Analisis from './pages/Analisis' // 🔥 NUEVO
-
 import PrediccionVentas from './pages/empresa/EmpresaPrediccionPage'
-
 import './App.css'
 
 // Componente wrapper para el modal de recordatorio de encuesta
@@ -162,12 +160,12 @@ function AppRoutes() {
                 <DetalleDevolucionPage />
               </ProtectedRoute>
             } />
-              <Route path="/empresa/prediccion" element={
+
+            <Route path="/empresa/prediccion" element={
               <ProtectedRoute roles={['empresa']}>
                 <PrediccionVentas />
               </ProtectedRoute>
             } />
-
 
             {/* Errores */}
             <Route path="/no-autorizado" element={
