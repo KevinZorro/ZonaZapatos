@@ -1,16 +1,13 @@
-<<<<<<< Updated upstream
 """Dashboard de ventas — RF12 — Implementación Phase 6."""
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-=======
 """Dashboard + Analisis + Prediccion router."""
 import datetime as _dt
 
 from fastapi import APIRouter, Depends, HTTPException
->>>>>>> Stashed changes
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
@@ -18,7 +15,6 @@ import joblib
 import numpy as np
 
 from app.core.database import get_db
-<<<<<<< Updated upstream
 from app.core.security import get_current_user, require_rol
 from app.pedidos.models import EstadoPedidoEnum, ItemPedido, Pedido
 from app.productos.models import Producto
@@ -26,9 +22,7 @@ from app.usuarios.models import Empresa
 from app.dashboard.services import analizar_devoluciones
 from typing import Optional
 from datetime import date
-=======
 from app.core.security import require_rol, get_current_user
->>>>>>> Stashed changes
 
 router = APIRouter(prefix="/empresa", tags=["dashboard", "analisis", "prediccion"])
 
