@@ -1,37 +1,49 @@
 // RF5 — Catálogo general público
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import Icon from '../assets/icons'
+import { Button, Chip, EmptyState, SectionHeading } from '../components/ui'
 import './CatalogPage.css'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const ESTADOS = {
-  activo:   { label: 'Disponible',      color: '#16A34A', bg: '#F0FDF4' },
-  agotado:  { label: 'Agotado',         color: '#DC2626', bg: '#FEF2F2' },
-  inactivo: { label: 'Pronto disponible', color: '#D97706', bg: '#FFFBEB' },
+  activo:   { label: 'Disponible',      tone: 'success' },
+  agotado:  { label: 'Agotado',         tone: 'danger' },
+  inactivo: { label: 'Pronto disponible', tone: 'olive' },
 }
 
 function getEstado(e) {
-  return ESTADOS[e] || { label: e, color: '#6B7280', bg: '#F9FAFB' }
+  return ESTADOS[e] || { label: e, tone: 'neutral' }
 }
 
 function formatPrice(price) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(price)
 }
 
+// Hook: debounce de un valor (espera N ms sin cambios antes de exponerlo)
+function useDebouncedValue(value, delay = 400) {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
+
 function StarRatingMini({ rating, total = 0 }) {
   if (!rating || rating === 0) {
     return (
       <div className="prod-card__stars prod-card__stars--empty">
-        <span className="prod-card__star prod-card__star--empty">★</span>
-        <span className="prod-card__rating">Sin reseñas</span>
+        <Icon name="star" size={14} />
+        <span>Sin reseñas</span>
       </div>
     )
   }
   return (
     <div className="prod-card__stars">
-      <span className="prod-card__star">★</span>
+      <Icon name="star-filled" size={14} />
       <span className="prod-card__rating">{rating.toFixed(1)}</span>
       <span className="prod-card__count">({total})</span>
     </div>
@@ -45,48 +57,58 @@ function ProductCard({ product, index }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ delay: Math.min(index * 0.04, 0.4), duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
     >
       <Link to={`/productos/${product.id}`} className="prod-card">
-        {/* Imagen */}
         <div className="prod-card__img-wrap">
           {imagen
             ? <img src={imagen} alt={product.nombre} className="prod-card__img" loading="lazy" />
-            : <div className="prod-card__img-placeholder">👟</div>
+            : <div className="prod-card__img-placeholder">
+                <Icon name="shoe" size={48} />
+              </div>
           }
-          <span className="prod-card__badge" style={{ background: estado.bg, color: estado.color }}>
+
+          <Chip
+            tone={estado.tone}
+            size="sm"
+            active
+            className="prod-card__badge"
+          >
             {estado.label}
-          </span>
+          </Chip>
+
           {product.stock <= 5 && product.stock > 0 && (
-            <span className="prod-card__badge prod-card__badge--stock">Últimas {product.stock}</span>
+            <span className="prod-card__stock-badge">
+              Últimas {product.stock}
+            </span>
           )}
-          {/* Indicador de reseñas */}
-          {promedio > 0 && (
-            <div className="prod-card__rating-badge">
-              <span>★</span> {promedio.toFixed(1)}
-            </div>
-          )}
+
+          <div className="prod-card__overlay">
+            <span className="prod-card__view">
+              Ver detalle
+              <Icon name="arrow-right" size={14} />
+            </span>
+          </div>
         </div>
 
-        {/* Info */}
         <div className="prod-card__body">
-          <p className="prod-card__empresa">{product.empresa_nombre || `Empresa #${product.empresa_id}`}</p>
-          <h3 className="prod-card__name">{product.nombre}</h3>
+          <p className="prod-card__empresa eyebrow">{product.empresa_nombre || `Empresa #${product.empresa_id}`}</p>
+          <h3 className="prod-card__name serif">{product.nombre}</h3>
 
           <div className="prod-card__meta">
             {product.talla && <span className="prod-card__chip">T: {product.talla}</span>}
             {product.color && (
-              <span className="prod-card__chip" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: product.color, border: '1px solid rgba(0,0,0,0.15)', display: 'inline-block' }} />
+              <span className="prod-card__chip prod-card__chip--color">
+                <span className="prod-card__color-dot" style={{ background: product.color }} />
                 {product.color}
               </span>
             )}
           </div>
 
           <div className="prod-card__footer">
-            <span className="prod-card__price">{formatPrice(product.precio)}</span>
+            <span className="prod-card__price serif">{formatPrice(product.precio)}</span>
             <StarRatingMini rating={promedio} total={product.total_resenas || 0} />
           </div>
         </div>
@@ -110,34 +132,42 @@ export default function CatalogPage() {
   const [filterTalla, setFilterTalla] = useState('')
   const [empresas, setEmpresas] = useState([])
   const [categorias, setCategorias] = useState([])
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const PAGE_SIZE = 20
+
+  // Debounce de precios: evita un fetch por tecla
+  const debouncedPrecioMin = useDebouncedValue(precioMin, 500)
+  const debouncedPrecioMax = useDebouncedValue(precioMax, 500)
+
+  // Aborta requests en vuelo cuando llegan nuevos filtros (evita race conditions)
+  const abortRef = useRef(null)
 
   const fetchProducts = useCallback(async (p = 1) => {
     setLoading(true)
     setError('')
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
     try {
-      const params = new URLSearchParams({
-        page: p,
-        page_size: PAGE_SIZE,
-      })
+      const params = new URLSearchParams({ page: p, page_size: PAGE_SIZE })
       if (filterEstado) params.append('estado', filterEstado)
       if (filterEmpresa) params.append('empresa_id', filterEmpresa)
       if (filterCategoria) params.append('categoria_id', filterCategoria)
-      if (precioMin) params.append('precio_min', precioMin)
-      if (precioMax) params.append('precio_max', precioMax)
+      if (debouncedPrecioMin) params.append('precio_min', debouncedPrecioMin)
+      if (debouncedPrecioMax) params.append('precio_max', debouncedPrecioMax)
       if (filterTalla) params.append('talla', filterTalla)
-      const res = await fetch(`${API}/productos?page=${p}&page_size=${PAGE_SIZE}`)
+      const res = await fetch(`${API}/productos?${params.toString()}`, { signal: ctrl.signal })
       if (!res.ok) throw new Error('No se pudo cargar el catálogo')
       const data = await res.json()
       setTotal(data.total)
       if (p === 1) setProducts(data.items)
       else setProducts(prev => [...prev, ...data.items])
     } catch (err) {
-      setError(err.message)
+      if (err.name !== 'AbortError') setError(err.message)
     } finally {
-      setLoading(false)
+      if (abortRef.current === ctrl) setLoading(false)
     }
-  }, [filterEstado, filterEmpresa, filterCategoria, precioMin, precioMax, filterTalla])
+  }, [filterEstado, filterEmpresa, filterCategoria, debouncedPrecioMin, debouncedPrecioMax, filterTalla])
 
   useEffect(() => {
     setPage(1)
@@ -145,21 +175,16 @@ export default function CatalogPage() {
   }, [fetchProducts])
 
   useEffect(() => {
-    // Cargar empresas únicas y categorías para los filtros
-    fetch(`${API}/productos?page_size=100`)
+    // Endpoint ligero: solo id + nombre, una query SQL (antes 100 productos con N+1 = ~300 queries)
+    fetch(`${API}/empresas-publicas`)
       .then(r => r.json())
-      .then(data => {
-        const emps = {}
-        data.items.forEach(p => {
-          if (p.empresa_id) emps[p.empresa_id] = p.empresa_nombre || `Empresa #${p.empresa_id}`
-        })
-        setEmpresas(Object.entries(emps).map(([id, nombre]) => ({ id: Number(id), nombre })))
-      })
+      .then(setEmpresas)
+      .catch(() => {})
 
     fetch(`${API}/categorias`)
       .then(r => r.json())
-      .then(data => setCategorias(data))
-      .catch(() => {}) // si no existe el endpoint, ignora
+      .then(setCategorias)
+      .catch(() => {})
   }, [])
 
   const loadMore = () => {
@@ -168,7 +193,6 @@ export default function CatalogPage() {
     fetchProducts(next)
   }
 
-  // Filtrado local por búsqueda y estado
   const filtered = products.filter(p => {
     const matchSearch = !search ||
       p.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -188,169 +212,263 @@ export default function CatalogPage() {
     setFilterTalla('')
   }
 
+  const activeFiltersCount = [filterEstado, filterEmpresa, filterCategoria, filterTalla, precioMin, precioMax]
+    .filter(Boolean).length
+
   const hasMore = products.length < total
 
   return (
-    <div className="catalog-page">
-      {/* Hero */}
-      <div className="catalog-hero">
-        <div className="container">
-          <motion.h1
-            className="catalog-hero__title"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+    <div className="catalog-page has-grain">
+      {/* Hero editorial */}
+      <section className="catalog-hero">
+        <div className="container catalog-hero__inner">
+          <motion.div
+            className="catalog-hero__text"
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
+            }}
           >
-            Catálogo de Zapatos
-          </motion.h1>
-          <motion.p
-            className="catalog-hero__sub"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            <motion.span
+              className="catalog-hero__eyebrow eyebrow"
+              variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+            >
+              Cúcuta · Desde 2006
+            </motion.span>
+
+            <h1 className="catalog-hero__title serif display-2">
+              <motion.span
+                style={{ display: 'block' }}
+                variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0 } }}
+                transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+              >
+                Calzado hecho
+              </motion.span>
+              <motion.em
+                style={{ display: 'block' }}
+                variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0 } }}
+                transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+              >
+                con alma cucuteña
+              </motion.em>
+            </h1>
+
+            <motion.p
+              className="catalog-hero__sub"
+              variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }}
+              transition={{ duration: 0.6 }}
+            >
+              Una selección curada de los mejores fabricantes de la ciudad.
+              Cuero, costura y carácter. Directo a tu puerta.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="catalog-hero__deco"
+            aria-hidden
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.9, ease: [0.4, 0, 0.2, 1], delay: 0.2 }}
           >
-            Los mejores fabricantes de Cúcuta, al alcance de tu mano
-          </motion.p>
+            <motion.div
+              className="catalog-hero__shoe"
+              animate={{ y: [0, -10, 0], rotate: [-2, 2, -2] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Icon name="shoe" size={140} />
+            </motion.div>
+
+            <motion.span
+              className="catalog-hero__deco-ring catalog-hero__deco-ring--1"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.span
+              className="catalog-hero__deco-ring catalog-hero__deco-ring--2"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 55, repeat: Infinity, ease: 'linear' }}
+            />
+            <motion.span
+              className="catalog-hero__deco-pulse"
+              animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeOut' }}
+            />
+          </motion.div>
         </div>
-      </div>
+      </section>
 
       <div className="container catalog-layout">
-        {/* Barra de búsqueda */}
-        <div className="catalog-search-wrap">
-            <span className="catalog-search-icon">🔍</span>
+        {/* Search + filter toggle */}
+        <div className="catalog-toolbar">
+          <div className="catalog-search-wrap">
+            <span className="catalog-search-icon"><Icon name="search" size={18} /></span>
             <input
               className="catalog-search"
               type="text"
-              placeholder="Buscar por nombre, empresa, descripción…"
+              placeholder="Buscar zapatos, empresas, colores…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
             {search && (
-              <button className="catalog-search-clear" onClick={() => setSearch('')} aria-label="Limpiar">✕</button>
-            )}
-          </div>
-
-        <div className="catalog-filters">
-          {/* Panel de filtros avanzados */} 
-          <div className="catalog-advanced-filters">
-
-            {/* Disponibilidad */}
-            <select
-              className="catalog-filter-select"
-              value={filterEstado}
-              onChange={e => { setFilterEstado(e.target.value); setPage(1) }}
-            >
-              <option value="">✅ Todos los productos</option>
-              <option value="activo">Disponibles</option>
-              <option value="agotado">Agotados</option>
-              <option value="inactivo">Proximamente</option>
-            </select>
-
-            {/* Empresa */}
-            <select
-              className="catalog-filter-select"
-              value={filterEmpresa}
-              onChange={e => { setFilterEmpresa(e.target.value); setPage(1) }}
-            >
-              <option value="">🏪 Todas las empresas</option>
-              {empresas.map(e => (
-                <option key={e.id} value={e.id}>{e.nombre}</option>
-              ))}
-            </select>
-
-            {/* Categorias */}
-            <select
-              className="catalog-filter-select"
-              value={filterCategoria}
-              onChange={e => { setFilterCategoria(e.target.value); setPage(1) }}
-            >
-              <option value="">🏷️ Todas las categorías</option>
-              {categorias.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
-              ))}
-            </select>
-
-            {/* Tallas */}
-            <select
-              className="catalog-filter-select"
-              value={filterTalla}
-              onChange={e => { setFilterTalla(e.target.value); setPage(1) }}
-            >
-              <option value="">👟 Todas las tallas</option>
-              {['35','36','37','38','39','40','41','42','43'].map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-
-            {/* Rango precios */}
-            <div className="catalog-price-range">
-              <input
-                className="catalog-filter-input"
-                type="number"
-                placeholder="Precio mín"
-                value={precioMin}
-                onChange={e => setPrecioMin(e.target.value)}
-                onBlur={() => { setPage(1); fetchProducts(1) }}
-              />
-              <span>—</span>
-              <input
-                className="catalog-filter-input"
-                type="number"
-                placeholder="Precio máx"
-                value={precioMax}
-                onChange={e => setPrecioMax(e.target.value)}
-                onBlur={() => { setPage(1); fetchProducts(1) }}
-              />
-            </div>
-
-            {/* Botón limpiar */}
-            {(filterEmpresa || filterCategoria || filterTalla || precioMin || precioMax) && (
-              <button className="catalog-retry" onClick={limpiarFiltros}>
-                ✕ Limpiar filtros
+              <button className="catalog-search-clear" onClick={() => setSearch('')} aria-label="Limpiar búsqueda">
+                <Icon name="close" size={14} />
               </button>
             )}
           </div>
+
+          <button
+            className={`catalog-filter-toggle ${filtersOpen ? 'is-open' : ''}`}
+            onClick={() => setFiltersOpen(o => !o)}
+            aria-expanded={filtersOpen}
+          >
+            <Icon name="filter" size={18} />
+            <span>Filtros</span>
+            {activeFiltersCount > 0 && (
+              <span className="catalog-filter-toggle__count">{activeFiltersCount}</span>
+            )}
+          </button>
         </div>
 
-        {/* Contador */}
+        {/* Estado chips siempre visibles */}
+        <div className="catalog-quick-filters">
+          <Chip tone="magenta" active={!filterEstado} onClick={() => setFilterEstado('')} size="sm">
+            Todos
+          </Chip>
+          <Chip tone="success" active={filterEstado === 'activo'} onClick={() => setFilterEstado('activo')} size="sm">
+            Disponibles
+          </Chip>
+          <Chip tone="danger" active={filterEstado === 'agotado'} onClick={() => setFilterEstado('agotado')} size="sm">
+            Agotados
+          </Chip>
+          <Chip tone="olive" active={filterEstado === 'inactivo'} onClick={() => setFilterEstado('inactivo')} size="sm">
+            Próximamente
+          </Chip>
+        </div>
+
+        {/* Filtros avanzados expandibles */}
+        <AnimatePresence>
+          {filtersOpen && (
+            <motion.div
+              className="catalog-filters-panel"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="catalog-filters-grid">
+                <label className="catalog-field">
+                  <span className="catalog-field__label">Empresa</span>
+                  <select
+                    className="catalog-field__select"
+                    value={filterEmpresa}
+                    onChange={e => { setFilterEmpresa(e.target.value); setPage(1) }}
+                  >
+                    <option value="">Todas las empresas</option>
+                    {empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                  </select>
+                </label>
+
+                <label className="catalog-field">
+                  <span className="catalog-field__label">Categoría</span>
+                  <select
+                    className="catalog-field__select"
+                    value={filterCategoria}
+                    onChange={e => { setFilterCategoria(e.target.value); setPage(1) }}
+                  >
+                    <option value="">Todas</option>
+                    {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                  </select>
+                </label>
+
+                <label className="catalog-field">
+                  <span className="catalog-field__label">Talla</span>
+                  <select
+                    className="catalog-field__select"
+                    value={filterTalla}
+                    onChange={e => { setFilterTalla(e.target.value); setPage(1) }}
+                  >
+                    <option value="">Cualquier talla</option>
+                    {['35','36','37','38','39','40','41','42','43'].map(t => (
+                      <option key={t} value={t}>Talla {t}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="catalog-field">
+                  <span className="catalog-field__label">Rango de precio</span>
+                  <div className="catalog-price-range">
+                    <input
+                      className="catalog-field__input"
+                      type="number"
+                      placeholder="Mín"
+                      value={precioMin}
+                      onChange={e => setPrecioMin(e.target.value)}
+                    />
+                    <span className="catalog-price-range__sep" aria-hidden>—</span>
+                    <input
+                      className="catalog-field__input"
+                      type="number"
+                      placeholder="Máx"
+                      value={precioMax}
+                      onChange={e => setPrecioMax(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {activeFiltersCount > 0 && (
+                <div className="catalog-filters-actions">
+                  <Button variant="ghost" size="sm" onClick={limpiarFiltros} iconLeft={<Icon name="close" size={14} />}>
+                    Limpiar filtros
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Counter */}
         {!loading && !error && (
           <p className="catalog-count">
-            {filtered.length === 0 && search ? 'Sin resultados' : `${total} producto${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`}
-            {search && ` para "${search}"`}
+            {filtered.length === 0 && search
+              ? 'Sin resultados'
+              : <><strong>{total}</strong> {total !== 1 ? 'productos' : 'producto'}</>}
+            {search && <span> para "<em>{search}</em>"</span>}
           </p>
         )}
 
         {/* Error */}
         {error && (
-          <div className="catalog-empty">
-            <span className="catalog-empty__icon">⚠️</span>
-            <h3>No se pudo cargar el catálogo</h3>
-            <p>{error}</p>
-            <button className="catalog-retry" onClick={() => fetchProducts(1)}>Reintentar</button>
-          </div>
+          <EmptyState
+            illustration="error"
+            tone="dark"
+            title="No pudimos cargar el catálogo"
+            description={error}
+            actions={
+              <Button variant="primary" onClick={() => fetchProducts(1)}>
+                Reintentar
+              </Button>
+            }
+          />
         )}
 
-        {/* Sin resultados con filtros */}
+        {/* Empty con filtros */}
         <AnimatePresence>
           {!loading && !error && filtered.length === 0 && (
-            <motion.div
-              className="catalog-empty"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-            >
-              <span className="catalog-empty__icon">👟</span>
-              <h3>Sin resultados</h3>
-              <p>No encontramos productos que coincidan con tu búsqueda.</p>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                {search && (
-                  <button className="catalog-retry" onClick={() => setSearch('')}>Limpiar búsqueda</button>
-                )}
-                {filterEstado && (
-                  <button className="catalog-retry" onClick={() => setFilterEstado('')}>Ver todos</button>
-                )}
-              </div>
-            </motion.div>
+            <EmptyState
+              illustration="empty-search"
+              title="No encontramos lo que buscas"
+              description="Probá con otros términos o limpiá los filtros para ver el catálogo completo."
+              actions={
+                <>
+                  {search && <Button variant="outline" onClick={() => setSearch('')}>Limpiar búsqueda</Button>}
+                  {activeFiltersCount > 0 && <Button variant="primary" onClick={limpiarFiltros}>Limpiar filtros</Button>}
+                </>
+              }
+            />
           )}
         </AnimatePresence>
 
@@ -363,7 +481,7 @@ export default function CatalogPage() {
           </div>
         )}
 
-        {/* Skeleton loading */}
+        {/* Skeleton */}
         {loading && page === 1 && (
           <div className="catalog-grid">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -382,17 +500,12 @@ export default function CatalogPage() {
         {/* Load more */}
         {!loading && hasMore && filtered.length > 0 && (
           <div className="catalog-more">
-            <motion.button
-              className="catalog-more-btn"
-              onClick={loadMore}
-              whileTap={{ scale: 0.96 }}
-            >
+            <Button variant="outline" size="lg" onClick={loadMore} iconRight={<Icon name="arrow-right" size={16} />}>
               Cargar más productos
-            </motion.button>
+            </Button>
           </div>
         )}
 
-        {/* Loading more */}
         {loading && page > 1 && (
           <div className="catalog-more">
             <span className="catalog-loading-dot" />

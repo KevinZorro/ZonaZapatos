@@ -4,16 +4,18 @@
   max-width: 900px;
   margin: 40px auto;
   padding: 30px;
-  background: #ffffff;
+  background: var(--surface, #ffffff);
+  color: var(--text, #1A1A1A);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
   text-align: center;
 }
 
 .analisis-title {
   font-size: 1.8rem;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--text);
 }
 
 .analisis-form {
@@ -22,14 +24,17 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 25px;
-  flex-wrap: wrap; /* 👈 mejora en pantallas pequeñas */
+  flex-wrap: wrap;
 }
 
 .analisis-form input[type="date"] {
   padding: 8px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   font-size: 0.95rem;
+  background: var(--surface-2, #fff);
+  color: var(--text);
+  color-scheme: light dark;        /* hace que el picker respete el tema */
 }
 
 .analisis-form button {
@@ -49,7 +54,7 @@
 
 .analisis-msg {
   font-size: 1rem;
-  color: #555;
+  color: var(--text-soft, #555);
   margin-top: 15px;
 }
 
@@ -59,12 +64,10 @@
   margin-top: 15px;
 }
 
-/* CONTENEDOR GENERAL RESULTADOS */
 .analisis-resultados {
   margin-top: 25px;
 }
 
-/* GRID DE 3 COLUMNAS */
 .analisis-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -72,23 +75,23 @@
   text-align: left;
 }
 
-/* TARJETAS DE CADA PRODUCTO */
 .analisis-card {
-  background: #f9f9f9;
+  background: var(--surface-2, #f9f9f9);
+  color: var(--text);
   padding: 15px;
   border-radius: 8px;
-  border: 1px solid #eee;
+  border: 1px solid var(--border);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .analisis-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .analisis-card h3 {
   margin-bottom: 10px;
-  color: #333;
+  color: var(--text);
 }
 
 .analisis-card ul {
@@ -98,11 +101,10 @@
 
 .analisis-card li {
   padding: 6px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
   font-size: 0.95rem;
 }
 
-/* GRÁFICA (SE MANTIENE IGUAL) */
 .grafica-global {
   margin-top: 40px;
   text-align: center;
@@ -110,7 +112,7 @@
 
 .grafica-global h2 {
   margin-bottom: 20px;
-  color: #007bff;
+  color: var(--magenta);
 }
 
 .grafica-global canvas {
@@ -119,15 +121,10 @@
   display: block;
 }
 
-/* RESPONSIVE */
 @media (max-width: 768px) {
-  .analisis-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  .analisis-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 480px) {
-  .analisis-grid {
-    grid-template-columns: 1fr;
-  }
+  .analisis-grid { grid-template-columns: 1fr; }
 }

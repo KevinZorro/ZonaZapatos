@@ -149,7 +149,7 @@
   place-items: center;
   align-content: center;
   gap: 0.15rem;
-  color: var(--dark);
+  color: #1F1A17;   /* siempre oscuro: el fondo es cream en ambos temas */
 }
 
 .pp-thumb-model__icon {

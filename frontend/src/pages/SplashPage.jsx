@@ -1,74 +1,76 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import Icon from '../assets/icons'
 import './SplashPage.css'
 
 const slides = [
   {
     id: 1,
     bg: '#C8006E',
-    title: 'En Cúcuta desde el 2006',
-    subtitle: 'Calzado artesanal con alma cucuteña',
-    emoji: '👟',
+    eyebrow: 'Desde 2006',
+    title: 'Hecho en Cúcuta',
+    subtitle: 'Calzado artesanal con alma cucuteña, generación tras generación.',
+    icon: 'shoe',
   },
   {
     id: 2,
     bg: '#960052',
-    title: 'Estilos que se adaptan a tí',
-    subtitle: 'Encuentra el zapato perfecto para cada momento',
-    emoji: '👠',
+    eyebrow: 'A tu medida',
+    title: 'Estilos que se adaptan a ti',
+    subtitle: 'Encuentra el par perfecto para cada momento de tu día.',
+    icon: 'sparkle',
   },
   {
     id: 3,
     bg: '#8B1A2D',
-    title: 'Calidad que se nota',
-    subtitle: 'Materiales premium, acabados de lujo',
-    emoji: '✨',
+    eyebrow: 'Calidad real',
+    title: 'Materiales que se sienten',
+    subtitle: 'Cuero genuino, acabados premium y costuras que duran.',
+    icon: 'star-filled',
   },
   {
     id: 4,
     bg: '#6B2A1A',
+    eyebrow: 'Sin intermediarios',
     title: 'Directo del fabricante',
-    subtitle: 'Sin intermediarios, precios justos',
-    emoji: '🏭',
+    subtitle: 'Pagas el precio justo. Lo demás se queda en quien lo hace.',
+    icon: 'store',
   },
   {
     id: 5,
     bg: '#8B9D3A',
-    title: 'Disponibles a nivel nacional',
-    subtitle: 'Envíos a toda Colombia con total seguridad',
-    emoji: '📦',
+    eyebrow: 'Envíos nacionales',
+    title: 'En toda Colombia',
+    subtitle: 'Empacado con cuidado, entregado con seguridad, donde estés.',
+    icon: 'truck',
   },
   {
     id: 6,
     bg: '#6B7B2A',
-    title: 'Pruébalos en realidad aumentada',
-    subtitle: 'Visualiza el zapato antes de comprarlo',
-    emoji: '🥽',
+    eyebrow: 'Realidad aumentada',
+    title: 'Pruébalos antes de pedirlos',
+    subtitle: 'Visualiza cada zapato en tu espacio con tu propio teléfono.',
+    icon: 'ar',
   },
 ]
 
 export default function SplashPage() {
   const navigate = useNavigate()
-  const [phase, setPhase] = useState('splash') // 'splash' | 'onboarding'
+  const [phase, setPhase] = useState('splash')
   const [current, setCurrent] = useState(0)
 
-  // After 1.8s splash → onboarding
   useEffect(() => {
-    const t = setTimeout(() => setPhase('onboarding'), 1800)
+    const t = setTimeout(() => setPhase('onboarding'), 2000)
     return () => clearTimeout(t)
   }, [])
 
   const next = () => {
-    if (current < slides.length - 1) {
-      setCurrent(current + 1)
-    } else {
-      localStorage.setItem('zz_seen_splash', '1')
-      navigate('/catalogo')
-    }
+    if (current < slides.length - 1) setCurrent(current + 1)
+    else finish()
   }
 
-  const skip = () => {
+  const finish = () => {
     localStorage.setItem('zz_seen_splash', '1')
     navigate('/catalogo')
   }
@@ -81,26 +83,47 @@ export default function SplashPage() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
+        <div className="splash-grain" aria-hidden />
         <motion.div
           className="splash-logo"
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.2 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
         >
-          <span className="splash-logo__icon">👟</span>
-          <span className="splash-logo__name">Zona Zapatos</span>
-          <span className="splash-logo__tagline">En Cúcuta desde el 2006</span>
-        </motion.div>
+          <motion.div
+            className="splash-mark"
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, type: 'spring', stiffness: 180, damping: 18 }}
+          >
+            <Icon name="shoe" size={56} />
+          </motion.div>
 
-        <motion.div
-          className="splash-rings"
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.15 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-        >
-          <div className="ring ring--1" />
-          <div className="ring ring--2" />
-          <div className="ring ring--3" />
+          <motion.h1
+            className="splash-name serif"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.6 }}
+          >
+            Zona Zapatos
+          </motion.h1>
+
+          <motion.span
+            className="splash-rule"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+            aria-hidden
+          />
+
+          <motion.p
+            className="splash-tagline eyebrow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.9, duration: 0.5 }}
+          >
+            Cúcuta · Desde 2006
+          </motion.p>
         </motion.div>
       </motion.div>
     )
@@ -109,77 +132,109 @@ export default function SplashPage() {
   const slide = slides[current]
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={slide.id}
-        className="onboarding-screen"
-        style={{ background: slide.bg }}
-        initial={{ opacity: 0, x: 60 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -60 }}
-        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-      >
-        {/* Background rings */}
-        <div className="ob-rings">
-          <motion.div
-            className="ob-ring ob-ring--1"
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
-          />
-          <motion.div
-            className="ob-ring ob-ring--2"
-            animate={{ rotate: -360 }}
-            transition={{ repeat: Infinity, duration: 30, ease: 'linear' }}
-          />
-        </div>
+    <div className="onboarding-screen" style={{ background: slide.bg }}>
+      <div className="splash-grain" aria-hidden />
 
-        {/* Shoe emoji hero */}
-        <motion.div
-          className="ob-hero"
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1, type: 'spring', stiffness: 150 }}
-        >
-          <span className="ob-hero__emoji">{slide.emoji}</span>
-        </motion.div>
+      {/* Skip floating */}
+      <button className="ob-skip" onClick={finish}>Saltar</button>
 
-        {/* Text */}
-        <motion.div
-          className="ob-text"
-          initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h1 className="ob-title">{slide.title}</h1>
-          <p className="ob-subtitle">{slide.subtitle}</p>
-        </motion.div>
+      <div className="ob-container">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={slide.id}
+            className="ob-content"
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
+          >
+            <div className="ob-visual">
+              <motion.div
+                className="ob-medallion"
+                animate={{ rotate: [0, 360] }}
+                transition={{ repeat: Infinity, duration: 40, ease: 'linear' }}
+                aria-hidden
+              >
+                <svg viewBox="0 0 240 240" className="ob-medallion__svg">
+                  <defs>
+                    <path id={`circle-${slide.id}`} d="M120,120 m-90,0 a90,90 0 1,1 180,0 a90,90 0 1,1 -180,0" />
+                  </defs>
+                  <text fontSize="11" fill="rgba(255,255,255,0.55)" fontFamily="Inter" fontWeight="600">
+                    <textPath
+                      href={`#circle-${slide.id}`}
+                      textLength="555"
+                      lengthAdjust="spacing"
+                    >
+                      ZONA ZAPATOS  ·  CÚCUTA 2006  ·  HECHO A MANO  ·
+                    </textPath>
+                  </text>
+                </svg>
+              </motion.div>
+
+              <motion.div
+                className="ob-icon"
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.15, type: 'spring', stiffness: 180, damping: 18 }}
+              >
+                <Icon name={slide.icon} size={88} />
+              </motion.div>
+            </div>
+
+            <div className="ob-text">
+              <motion.span
+                className="ob-eyebrow eyebrow"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                {slide.eyebrow}
+              </motion.span>
+              <motion.h2
+                className="ob-title serif"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+              >
+                {slide.title}
+              </motion.h2>
+              <motion.p
+                className="ob-subtitle"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+                {slide.subtitle}
+              </motion.p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Dots */}
-        <div className="ob-dots">
+        <div className="ob-dots" role="tablist" aria-label="Progreso">
           {slides.map((_, i) => (
             <button
               key={i}
               className={`ob-dot ${i === current ? 'ob-dot--active' : ''}`}
               onClick={() => setCurrent(i)}
-              aria-label={`Slide ${i + 1}`}
+              aria-label={`Ir a slide ${i + 1}`}
+              role="tab"
+              aria-selected={i === current}
             />
           ))}
         </div>
 
-        {/* Actions */}
-        <div className="ob-actions">
-          <button className="ob-btn ob-btn--skip" onClick={skip}>
-            Saltar
-          </button>
-          <motion.button
-            className="ob-btn ob-btn--next"
-            onClick={next}
-            whileTap={{ scale: 0.95 }}
-          >
-            {current === slides.length - 1 ? 'Empezar' : 'Siguiente'}
-          </motion.button>
-        </div>
-      </motion.div>
-    </AnimatePresence>
+        {/* CTA principal */}
+        <motion.button
+          className="ob-next"
+          onClick={next}
+          whileTap={{ scale: 0.96 }}
+          whileHover={{ y: -2 }}
+        >
+          <span>{current === slides.length - 1 ? 'Entrar a la tienda' : 'Siguiente'}</span>
+          <Icon name="arrow-right" size={18} />
+        </motion.button>
+      </div>
+    </div>
   )
 }
