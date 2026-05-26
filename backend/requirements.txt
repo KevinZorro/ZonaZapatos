@@ -12,3 +12,8 @@ cloudinary==1.41.0
 pydantic[email]==2.10.3
 pydantic-settings==2.6.1
 httpx==0.28.1
+
+# ML / Predicción de ventas
+joblib==1.4.2
+numpy==1.26.4
+scikit-learn==1.5.2
