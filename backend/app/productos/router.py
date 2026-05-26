@@ -1,8 +1,9 @@
 """Productos router."""
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import settings
 from app.core.cloudinary_client import delete_file, is_cloudinary_configured, upload_file
@@ -31,7 +32,7 @@ def _get_empresa(user_id: int, db: Session) -> Empresa:
 
 
 def _get_producto_empresa(producto_id: int, empresa_id: int, db: Session) -> Producto:
-    producto = db.query(Producto).filter(
+    producto = _producto_query_with_loaders(db).filter(
         Producto.id == producto_id,
         Producto.empresa_id == empresa_id,
     ).first()
@@ -40,7 +41,33 @@ def _get_producto_empresa(producto_id: int, empresa_id: int, db: Session) -> Pro
     return producto
 
 
-def _serialize_producto(producto: Producto, db: Session = None) -> ProductoOut:
+def _fetch_resenas_stats(producto_ids: list[int], db: Session) -> dict[int, tuple[float, int]]:
+    """Devuelve {producto_id: (promedio, total)} en UNA sola query agrupada."""
+    if not producto_ids:
+        return {}
+    from app.encuestas.models import EncuestaSatisfaccion
+
+    rows = (
+        db.query(
+            EncuestaSatisfaccion.producto_id,
+            func.avg(EncuestaSatisfaccion.calificacion).label("promedio"),
+            func.count(EncuestaSatisfaccion.id).label("total"),
+        )
+        .filter(
+            EncuestaSatisfaccion.producto_id.in_(producto_ids),
+            EncuestaSatisfaccion.respondida.is_(True),
+        )
+        .group_by(EncuestaSatisfaccion.producto_id)
+        .all()
+    )
+    return {r.producto_id: (round(float(r.promedio), 1), int(r.total)) for r in rows}
+
+
+def _serialize_producto(
+    producto: Producto,
+    db: Session = None,
+    resenas_map: dict[int, tuple[float, int]] | None = None,
+) -> ProductoOut:
     data = ProductoOut.from_orm_with_empresa(producto)
     modelo_3d = next((media for media in producto.media if media.tipo == "modelo_3d"), None)
     data.modelo_3d_url = (
@@ -49,27 +76,30 @@ def _serialize_producto(producto: Producto, db: Session = None) -> ProductoOut:
         else settings.demo_model_3d_url
     )
 
-    # Calcular promedio de reseñas si hay sesión de DB
-    if db:
-        from app.encuestas.models import EncuestaSatisfaccion
-        from sqlalchemy import func
-
-        result = db.query(
-            func.avg(EncuestaSatisfaccion.calificacion).label('promedio'),
-            func.count(EncuestaSatisfaccion.id).label('total')
-        ).filter(
-            EncuestaSatisfaccion.producto_id == producto.id,
-            EncuestaSatisfaccion.respondida == True
-        ).first()
-
-        if result and result.promedio:
-            data.promedio_resenas = round(result.promedio, 1)
-            data.total_resenas = result.total
-        else:
-            data.promedio_resenas = 0
-            data.total_resenas = 0
+    # Reseñas: si nos pasaron el map ya lo usamos (caso lista); si no, query individual (caso detalle)
+    if resenas_map is not None:
+        promedio, total = resenas_map.get(producto.id, (0, 0))
+        data.promedio_resenas = promedio
+        data.total_resenas = total
+    elif db is not None:
+        stats = _fetch_resenas_stats([producto.id], db)
+        promedio, total = stats.get(producto.id, (0, 0))
+        data.promedio_resenas = promedio
+        data.total_resenas = total
 
     return data
+
+
+def _producto_query_with_loaders(db: Session):
+    """Query base con eager loading de las relaciones que la serialización necesita."""
+    return (
+        db.query(Producto)
+        .options(
+            selectinload(Producto.media),
+            selectinload(Producto.categorias),
+            joinedload(Producto.empresa),
+        )
+    )
 
 
 def _ensure_cloudinary() -> None:
@@ -100,12 +130,32 @@ def _get_media_kind(file: UploadFile) -> tuple[TipoMediaEnum, str | None]:
     )
 
 @router.get("/categorias")
-def list_categorias(db: Session = Depends(get_db)):
+def list_categorias(response: Response, db: Session = Depends(get_db)):
+    response.headers["Cache-Control"] = "public, max-age=300"
     return db.query(Categoria).all()
+
+
+@router.get("/empresas-publicas")
+def list_empresas_publicas(response: Response, db: Session = Depends(get_db)):
+    """Listado ligero (id + nombre) de empresas con al menos un producto.
+
+    Reemplaza el truco antiguo del frontend de pedir /productos?page_size=100
+    solo para extraer empresas únicas (que disparaba ~300 queries por N+1).
+    """
+    rows = (
+        db.query(Empresa.id, Empresa.nombre)
+        .join(Producto, Producto.empresa_id == Empresa.id)
+        .distinct()
+        .order_by(Empresa.nombre)
+        .all()
+    )
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return [{"id": r.id, "nombre": r.nombre} for r in rows]
     
 # ── Public catalog ────────────────────────────────────────────────────────────
 @router.get("/productos", response_model=ProductoListResponse)
 def list_productos(
+    response: Response,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     q: str = Query(None),
@@ -117,7 +167,7 @@ def list_productos(
     talla: str = Query(None),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Producto)
+    query = _producto_query_with_loaders(db)
     if q:
         query = query.filter(Producto.nombre.ilike(f"%{q}%"))
     if estado:
@@ -136,13 +186,21 @@ def list_productos(
     if talla:
         query = query.filter(Producto.talla.ilike(f"%{talla}%"))
 
-    total = query.count()
+    # total NO debe arrastrar los joinedload/selectinload → contamos sobre query simple
+    total = query.with_entities(func.count(Producto.id)).order_by(None).scalar()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
+
+    # Reseñas en una sola query agrupada
+    resenas_map = _fetch_resenas_stats([p.id for p in items], db)
+
+    # Cache corto para el catálogo público
+    response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
+
     return ProductoListResponse(
         total=total,
         page=page,
         page_size=page_size,
-        items=[_serialize_producto(p, db) for p in items],
+        items=[_serialize_producto(p, db, resenas_map=resenas_map) for p in items],
     )
 
 
@@ -151,7 +209,7 @@ def get_producto(
     producto_id: int,
     db: Session = Depends(get_db),
 ):
-    producto = db.query(Producto).filter(Producto.id == producto_id).first()
+    producto = _producto_query_with_loaders(db).filter(Producto.id == producto_id).first()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     return _serialize_producto(producto, db)
@@ -256,7 +314,7 @@ def list_mis_productos(
     db: Session = Depends(get_db),
 ):
     empresa = _get_empresa(int(payload["sub"]), db)
-    query = db.query(Producto).filter(Producto.empresa_id == empresa.id)
+    query = _producto_query_with_loaders(db).filter(Producto.empresa_id == empresa.id)
     if q:
         query = query.filter(Producto.nombre.ilike(f"%{q}%"))
     if estado:
@@ -264,13 +322,14 @@ def list_mis_productos(
             query = query.filter(Producto.estado == EstadoProductoEnum(estado))
         except ValueError:
             pass
-    total = query.count()
+    total = query.with_entities(func.count(Producto.id)).order_by(None).scalar()
     items = query.offset((page - 1) * page_size).limit(page_size).all()
+    resenas_map = _fetch_resenas_stats([p.id for p in items], db)
     return ProductoListResponse(
         total=total,
         page=page,
         page_size=page_size,
-        items=[_serialize_producto(p, db) for p in items],
+        items=[_serialize_producto(p, db, resenas_map=resenas_map) for p in items],
     )
 
 

@@ -191,34 +191,20 @@ export default function PedidosPage() {
 
   const fetchPedidos = useCallback(async () => {
     try {
-      // Fetch pedidos
-      const { data: pedidosData } = await api.get('/clientes/pedidos')
-      Array.isArray(pedidosData) ? setPedidos(pedidosData) : setPedidos([])
-      
-      // Fetch devoluciones para cada pedido
+      // Pedidos + devoluciones en PARALELO, una sola request c/u
+      const [pedidosRes, devolucionesRes] = await Promise.all([
+        api.get('/clientes/pedidos'),
+        api.get('/devoluciones/mis-devoluciones').catch(() => ({ data: [] })),
+      ])
+
+      const pedidosData = Array.isArray(pedidosRes.data) ? pedidosRes.data : []
+      setPedidos(pedidosData)
+
+      // Indexar devoluciones por pedido_id local — sin hacer 1 fetch por pedido
       const devolucionesMap = {}
-      if (Array.isArray(pedidosData)) {
-        await Promise.all(
-          pedidosData.map(async (pedido) => {
-            try {
-              const { data: devData } = await api.get(`/devoluciones/pedido/${pedido.id}`)
-              // Solo guardar si hay devolución (data no es null)
-              if (devData) {
-                devolucionesMap[pedido.id] = devData
-              }
-            } catch (err) {
-              // Solo loguear errores reales (no 404 ahora que retornamos null)
-              if (err.response?.status === 401) {
-                console.error('Error de autenticación al cargar devolución:', err)
-                setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
-              } else if (err.response?.status >= 500) {
-                console.error('Error del servidor al cargar devolución:', err)
-                setError('Error temporal del servidor. Por favor intenta más tarde.')
-              }
-              // Otros errores los ignoramos silenciosamente
-            }
-          })
-        )
+      const devsArr = Array.isArray(devolucionesRes.data) ? devolucionesRes.data : []
+      for (const dev of devsArr) {
+        if (dev && dev.pedido_id != null) devolucionesMap[dev.pedido_id] = dev
       }
       setDevoluciones(devolucionesMap)
     } catch (err) {
