@@ -226,8 +226,14 @@
   padding: var(--sp-5);
   background: var(--white);
   border-radius: var(--r-lg);
-  border: 1px solid rgba(31, 26, 23, 0.06);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+
+/* En dark mode el var(--white) es casi igual al fondo, le doy un tono más claro */
+:root[data-theme='dark'] .catalog-filters-grid {
+  background: var(--cream-warm);
+  border-color: var(--border-strong);
 }
 
 @media (min-width: 640px)  { .catalog-filters-grid { grid-template-columns: 1fr 1fr; } }

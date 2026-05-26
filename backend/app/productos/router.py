@@ -255,8 +255,8 @@ def get_producto_resenas(
             resenas=[],
         )
 
-    # Calcular estadísticas
-    calificaciones = [e.calificacion for e in encuestas]
+    # Calcular estadísticas — castear a int/float para evitar warnings de Decimal
+    calificaciones = [int(e.calificacion) for e in encuestas]
     promedio = sum(calificaciones) / len(calificaciones)
 
     distribucion = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
@@ -278,11 +278,11 @@ def get_producto_resenas(
                 "avatar_url": avatar_url,
                 "inicial": cliente.nombre[0].upper() if cliente.nombre else "?"
             }
-        
+
         resenas.append(
             ResenaOut(
                 id=e.id,
-                calificacion=e.calificacion,
+                calificacion=int(e.calificacion),
                 comentario=e.comentario,
                 respondida_en=e.respondida_en.isoformat() if e.respondida_en else None,
                 pedido_id=e.pedido_id,
@@ -292,7 +292,7 @@ def get_producto_resenas(
         )
 
     return ResenasSummary(
-        promedio=round(promedio, 1),
+        promedio=round(float(promedio), 1),
         total=len(encuestas),
         distribucion=distribucion,
         resenas=resenas,
