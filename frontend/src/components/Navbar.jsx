@@ -85,6 +85,9 @@ export default function Navbar() {
           <NavLink to="/empresa/analisis" className={({ isActive }) => `nb-link ${isActive ? 'is-active' : ''}`}>
             <span>Análisis</span>
           </NavLink>
+          <NavLink to="/empresa/prediccion" className={({ isActive }) => `nb-link ${isActive ? 'is-active' : ''}`}>
+            <span>Predicción</span>
+          </NavLink>
         </>
       )}
 
