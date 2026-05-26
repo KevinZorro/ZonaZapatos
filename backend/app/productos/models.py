@@ -56,11 +56,14 @@ class Producto(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(255), nullable=False)
     descripcion = Column(Text, nullable=True)
-    precio = Column(Float, nullable=False)
+    precio = Column(Float, nullable=False, index=True)
     estado = Column(
-        Enum(EstadoProductoEnum), default=EstadoProductoEnum.activo, nullable=False
+        Enum(EstadoProductoEnum),
+        default=EstadoProductoEnum.activo,
+        nullable=False,
+        index=True,
     )
-    talla = Column(String(10), nullable=True)
+    talla = Column(String(10), nullable=True, index=True)
     color = Column(String(50), nullable=True)
     stock = Column(Integer, default=0, nullable=False)
     creado_en = Column(
@@ -75,7 +78,7 @@ class Producto(Base):
         nullable=False,
     )
     empresa_id = Column(
-        Integer, ForeignKey("empresas.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("empresas.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
     empresa = relationship("Empresa", back_populates="productos")

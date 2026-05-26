@@ -1,4 +1,11 @@
 /* App-level layout */
 main {
   flex: 1;
+  padding-top: var(--nav-h);
+}
+
+/* Páginas que son "pantalla completa" (splash, onboarding) anulan el padding */
+main:has(.splash-screen),
+main:has(.onboarding-screen) {
+  padding-top: 0;
 }

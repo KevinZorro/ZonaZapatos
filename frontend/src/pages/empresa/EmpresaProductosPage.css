@@ -1,9 +1,10 @@
 /* ===== EMPRESA PRODUCTOS PAGE ===== */
 .ep-page {
   min-height: 100vh;
-  padding-top: calc(var(--nav-h) + 2rem);
+  padding-top: 2rem;
   padding-bottom: 4rem;
-  background: #F7F5F2;
+  background: var(--cream);
+  color: var(--ink);
 }
 
 /* Header */
@@ -135,7 +136,7 @@
 .ep-card__img {
   position: relative;
   aspect-ratio: 4/3;
-  background: #F0EDE8;
+  background: var(--cream-deep);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -146,7 +147,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #f7f5f2;
+  background: var(--cream-deep);
 }
 
 .ep-card__no-img {
@@ -203,7 +204,7 @@
 
 .ep-tag {
   font-size: 0.72rem;
-  background: #F0EDE8;
+  background: var(--cream-deep);
   color: var(--gray);
   padding: 2px 8px;
   border-radius: var(--r-full);
@@ -468,7 +469,7 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  background: #f7f5f2;
+  background: var(--cream-deep);
   border: 1px solid var(--gray-light);
   border-radius: var(--r-md);
   padding: 0.65rem 0.8rem;
@@ -495,7 +496,7 @@
 .ep-media-card {
   overflow: hidden;
   border-radius: var(--r-lg);
-  background: #faf8f5;
+  background: var(--cream);
   border: 1px solid var(--gray-light);
 }
 
@@ -508,7 +509,7 @@
 .ep-media-card__preview {
   object-fit: contain;
   display: block;
-  background: #f7f5f2;
+  background: var(--cream-deep);
 }
 
 .ep-media-card__model,
