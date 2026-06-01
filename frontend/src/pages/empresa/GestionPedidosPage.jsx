@@ -26,7 +26,7 @@ function badgeFor(estado) {
   return ESTADOS.find(e => e.value === estado)?.badge || 'bg-gray-100 text-gray-600 border-gray-200'
 }
 
-function PedidoCard({ pedido, onAceptar, onRechazar, onEnviar, busy }) {
+function PedidoCard({ pedido, onAceptar, onRechazar, onEnviar, onEntregar, busy }) {
   const [showRechazo, setShowRechazo] = useState(false)
   const [motivo, setMotivo] = useState('')
 
@@ -146,6 +146,18 @@ function PedidoCard({ pedido, onAceptar, onRechazar, onEnviar, busy }) {
           </button>
         </div>
       )}
+
+      {pedido.estado === 'enviado' && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => onEntregar(pedido.id)}
+            disabled={busy}
+            className="px-4 py-2 text-sm font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            Marcar como entregado
+          </button>
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -208,6 +220,18 @@ export default function GestionPedidosPage() {
     }
   }
 
+  const handleEntregar = async (id) => {
+    setBusy(true)
+    try {
+      await api.put(`/pedidos/${id}/entregar`)
+      await cargar()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'No se pudo marcar como entregado')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8" style={{ paddingTop: 'calc(var(--nav-h) + 2rem)' }}>
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Gestión de Pedidos</h1>
@@ -255,6 +279,7 @@ export default function GestionPedidosPage() {
               onAceptar={handleAceptar}
               onRechazar={handleRechazar}
               onEnviar={handleEnviar}
+              onEntregar={handleEntregar}
             />
           ))}
         </div>
