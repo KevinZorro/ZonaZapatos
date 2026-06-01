@@ -53,10 +53,17 @@ def upgrade() -> None:
     if 'productos' in existing_tables:
         prod_cols = {c['name']: c for c in inspector.get_columns('productos')}
         if 'talla' in prod_cols:
-            op.alter_column('productos', 'talla',
-                            existing_type=sa.VARCHAR(length=35),
-                            type_=sa.String(length=10),
-                            existing_nullable=True)
+            # Solo reducimos a VARCHAR(10) si todos los datos caben.
+            # Si hay valores >10 chars (drift histórico), mantenemos el tamaño
+            # actual: VARCHAR(35) no rompe el runtime, solo es más permisivo.
+            max_len = bind.execute(
+                sa.text("SELECT COALESCE(MAX(LENGTH(talla)), 0) FROM productos")
+            ).scalar() or 0
+            if max_len <= 10:
+                op.alter_column('productos', 'talla',
+                                existing_type=sa.VARCHAR(length=35),
+                                type_=sa.String(length=10),
+                                existing_nullable=True)
         if 'stock' in prod_cols and prod_cols['stock'].get('nullable', True):
             op.alter_column('productos', 'stock',
                             existing_type=sa.SMALLINT(),
