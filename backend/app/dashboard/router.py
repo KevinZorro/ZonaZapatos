@@ -13,6 +13,7 @@ from app.pedidos.models import EstadoPedidoEnum, ItemPedido, Pedido
 from app.productos.models import Producto
 from app.usuarios.models import Empresa
 from app.dashboard.services import analizar_devoluciones
+from app.dashboard.models import PrediccionVentas
 from typing import Optional
 from datetime import date
 
@@ -303,13 +304,25 @@ def generar_explicaciones(ranking, ahora, producto):
 
 
 def predecir_4_semanas(modelo, producto_id, precio, talla_enc, color_enc, ahora):
+    """Devuelve (total_estimado, intervalo_inferior, intervalo_superior).
+
+    El intervalo se calcula a partir de la varianza de las predicciones de
+    cada árbol del Random Forest, sumadas a lo largo de las 4 semanas."""
     semana_actual = ahora.isocalendar()[1]
     total = 0.0
+    # Sumamos por árbol para propagar la incertidumbre
+    sumas_por_arbol = np.zeros(len(modelo.estimators_))
     for i in range(4):
         semana = ((semana_actual + i - 1) % 52) + 1
         entrada = np.array([[producto_id, float(precio), talla_enc, color_enc, ahora.month, semana]])
-        total += modelo.predict(entrada)[0]
-    return total
+        preds_arboles = np.array([t.predict(entrada)[0] for t in modelo.estimators_])
+        total += preds_arboles.mean()
+        sumas_por_arbol += preds_arboles
+    media = float(sumas_por_arbol.mean())
+    std = float(sumas_por_arbol.std())
+    inf = max(0.0, media - 1.96 * std)
+    sup = media + 1.96 * std
+    return total, inf, sup
 
 
 @router.get("/prediccion/{producto_id}", dependencies=[Depends(require_rol("empresa"))])
@@ -350,8 +363,10 @@ def get_prediccion(
     except Exception:
         color_enc = 0
 
-    ahora      = _dt.datetime.now()
-    prediccion = predecir_4_semanas(modelo, producto_id, producto.precio or 0, talla_enc, color_enc, ahora)
+    ahora = _dt.datetime.now()
+    prediccion, inf, sup = predecir_4_semanas(
+        modelo, producto_id, producto.precio or 0, talla_enc, color_enc, ahora
+    )
 
     importancias = modelo.feature_importances_
     ranking  = sorted(zip(FEATURES, importancias), key=lambda x: x[1], reverse=True)
@@ -360,10 +375,27 @@ def get_prediccion(
     nivel, consejo = nivel_demanda(prediccion)
     explicaciones  = generar_explicaciones(ranking, ahora, producto)
 
+    # Persistir resultado para historial / comparación posterior
+    try:
+        registro = PrediccionVentas(
+            empresa_id=empresa.id,
+            unidades_predichas=float(prediccion),
+            intervalo_inferior=float(inf),
+            intervalo_superior=float(sup),
+            periodo_predicho=f"{ahora.year}-{ahora.month:02d}-4sem",
+            datos_suficientes=True,
+        )
+        db.add(registro)
+        db.commit()
+    except Exception:
+        db.rollback()
+
     return {
         "producto_id":          producto_id,
         "unidades_estimadas":   round(float(prediccion), 1),
-        "mensaje":              f"Se estiman ~{round(prediccion)} unidades vendidas en las próximas 4 semanas",
+        "intervalo_inferior":   round(float(inf), 1),
+        "intervalo_superior":   round(float(sup), 1),
+        "mensaje":              f"Se estiman ~{round(prediccion)} unidades vendidas en las próximas 4 semanas (±{round((sup - inf) / 2, 1)})",
         "factores_principales": factores,
         "nivel_demanda":        nivel,
         "consejo":              consejo,
@@ -417,7 +449,9 @@ def predecir_conjunto(
         except Exception:
             color_enc = 0
 
-        total = predecir_4_semanas(modelo, pid, producto.precio or 0, talla_enc, color_enc, ahora)
+        total, inf, sup = predecir_4_semanas(
+            modelo, pid, producto.precio or 0, talla_enc, color_enc, ahora
+        )
 
         importancias = modelo.feature_importances_
         ranking  = sorted(zip(FEATURES, importancias), key=lambda x: x[1], reverse=True)
@@ -428,6 +462,8 @@ def predecir_conjunto(
             "producto_id":          pid,
             "nombre":               producto.nombre,
             "unidades_estimadas":   round(float(total), 1),
+            "intervalo_inferior":   round(float(inf), 1),
+            "intervalo_superior":   round(float(sup), 1),
             "factores_principales": factores,
             "nivel_demanda":        nivel,
             "consejo":              consejo,
@@ -435,3 +471,102 @@ def predecir_conjunto(
 
     resultados.sort(key=lambda x: x["unidades_estimadas"], reverse=True)
     return {"predicciones": resultados}
+
+
+# ── Reentrenar modelo de predicción de la empresa ────────────────────────────
+@router.post("/prediccion/reentrenar", dependencies=[Depends(require_rol("empresa"))])
+def reentrenar_modelo(
+    db: Session = Depends(get_db),
+    payload: dict = Depends(get_current_user),
+):
+    """Reentrena el modelo de predicción usando todos los pedidos de esta empresa.
+
+    Útil después de acumular nuevos pedidos confirmados. Retorna métricas básicas
+    (cantidad de semanas, promedio y MAE bajo validación temporal simple).
+    """
+    import os
+    import pandas as pd
+    from sklearn.ensemble import RandomForestRegressor
+    from sklearn.preprocessing import LabelEncoder
+
+    empresa = _get_empresa(int(payload["sub"]), db)
+
+    rows = (
+        db.query(
+            ItemPedido.producto_id,
+            Producto.talla,
+            Producto.color,
+            Producto.precio,
+            ItemPedido.cantidad,
+            Pedido.fecha_pedido,
+        )
+        .join(Pedido, ItemPedido.pedido_id == Pedido.id)
+        .join(Producto, ItemPedido.producto_id == Producto.id)
+        .filter(Producto.empresa_id == empresa.id)
+        .filter(Pedido.estado != EstadoPedidoEnum.cancelado)
+        .all()
+    )
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="No hay datos suficientes para entrenar.")
+
+    df = pd.DataFrame(rows, columns=[
+        "producto_id", "talla", "color", "precio", "cantidad", "fecha"
+    ])
+    df["fecha"] = pd.to_datetime(df["fecha"], utc=True)
+    df["semana"] = df["fecha"].dt.isocalendar().week.astype(int)
+    df["mes"] = df["fecha"].dt.month
+    df["año"] = df["fecha"].dt.year
+
+    df_agrupado = (
+        df.groupby(["producto_id", "talla", "color", "precio", "año", "mes", "semana"])
+        .agg(total_vendido=("cantidad", "sum"))
+        .reset_index()
+    )
+
+    if len(df_agrupado) < 5:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Solo {len(df_agrupado)} semanas de datos — se necesitan al menos 5.",
+        )
+
+    le_talla = LabelEncoder()
+    le_color = LabelEncoder()
+    df_agrupado["talla_enc"] = le_talla.fit_transform(df_agrupado["talla"].fillna("N/A"))
+    df_agrupado["color_enc"] = le_color.fit_transform(df_agrupado["color"].fillna("N/A"))
+
+    X = df_agrupado[["producto_id", "precio", "talla_enc", "color_enc", "mes", "semana"]]
+    y = df_agrupado["total_vendido"]
+
+    # Validación temporal simple: últimas 20% filas como test
+    n_test = max(1, int(len(df_agrupado) * 0.2))
+    df_orden = df_agrupado.sort_values(["año", "semana"])
+    X_train = X.loc[df_orden.index[:-n_test]]
+    y_train = y.loc[df_orden.index[:-n_test]]
+    X_test = X.loc[df_orden.index[-n_test:]]
+    y_test = y.loc[df_orden.index[-n_test:]]
+
+    modelo = RandomForestRegressor(n_estimators=200, random_state=42)
+    mae = None
+    if len(X_train) >= 3:
+        modelo.fit(X_train, y_train)
+        preds = modelo.predict(X_test)
+        mae = float(np.mean(np.abs(preds - y_test.values)))
+    # Entrenar final con todos los datos para guardar
+    modelo_final = RandomForestRegressor(n_estimators=200, random_state=42)
+    modelo_final.fit(X, y)
+
+    carpeta = f"static/models/empresa_{empresa.id}"
+    os.makedirs(carpeta, exist_ok=True)
+    joblib.dump(modelo_final, f"{carpeta}/prediccion_ventas.pkl")
+    joblib.dump(le_talla,     f"{carpeta}/encoder_talla.pkl")
+    joblib.dump(le_color,     f"{carpeta}/encoder_color.pkl")
+
+    return {
+        "ok": True,
+        "semanas_entrenadas": int(len(df_agrupado)),
+        "promedio_semanal": round(float(y.mean()), 2),
+        "max_semanal": int(y.max()),
+        "mae_validacion": round(mae, 2) if mae is not None else None,
+        "mensaje": "Modelo reentrenado correctamente.",
+    }

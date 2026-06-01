@@ -69,6 +69,7 @@ class Empresa(Base):
     ciudad = Column(String(100), nullable=True)
     logo_url = Column(String(500), nullable=True)
     whatsapp = Column(String(20), nullable=True)
+    dias_devolucion = Column(Integer, default=15, nullable=False)
 
     usuario = relationship("Usuario", back_populates="empresa")
     productos = relationship("Producto", back_populates="empresa")

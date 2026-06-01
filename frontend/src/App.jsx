@@ -23,6 +23,7 @@ import MisDevolucionesPage from './pages/client/MisDevolucionesPage'
 import EncuestaPage from './pages/client/EncuestaPage'
 import GestionDevolucionesPage from './pages/empresa/GestionDevolucionesPage'
 import DetalleDevolucionPage from './pages/empresa/DetalleDevolucionPage'
+import GestionPedidosPage from './pages/empresa/GestionPedidosPage'
 import EncuestaReminderModal from './components/EncuestaReminderModal'
 import { useAuth } from './context/AuthContext'
 import Analisis from './pages/Analisis' // 🔥 NUEVO
@@ -148,6 +149,11 @@ function AppRoutes() {
             <Route path="/empresa/analisis" element={
               <ProtectedRoute roles={['empresa']}>
                 <Analisis />  {/* 👈 reemplaza el Placeholder */}
+              </ProtectedRoute>
+            } />
+            <Route path="/empresa/pedidos" element={
+              <ProtectedRoute roles={['empresa']}>
+                <GestionPedidosPage />
               </ProtectedRoute>
             } />
             <Route path="/empresa/devoluciones" element={

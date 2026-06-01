@@ -33,6 +33,9 @@ export default function SolicitudDevolucionPage() {
   const [evidencias, setEvidencias] = useState([])
   const [previewImages, setPreviewImages] = useState([])
   const fileInputRef = useRef(null)  // Ref para limpiar el input file
+
+  // Ventana de devolución (RF política empresa)
+  const [ventana, setVentana] = useState(null)
   
   // Verificar autenticación
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -83,6 +86,10 @@ export default function SolicitudDevolucionPage() {
       }
     }
     fetchPedido()
+    // Cargar ventana de devolución
+    api.get(`/devoluciones/pedido/${pedidoId}/ventana`)
+      .then(({ data }) => setVentana(data))
+      .catch(() => {})
   }, [pedidoId])
 
   // Funciones para manejar items
@@ -364,6 +371,25 @@ export default function SolicitudDevolucionPage() {
             </p>
           </div>
         </motion.div>
+
+        {/* Banner ventana de devolución */}
+        {ventana && ventana.entregado && (
+          <div
+            className={`mb-6 px-4 py-3 rounded-xl border text-sm ${
+              ventana.vencida
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : ventana.dias_restantes <= 3
+                  ? 'bg-amber-50 border-amber-200 text-amber-800'
+                  : 'bg-blue-50 border-blue-200 text-blue-700'
+            }`}
+          >
+            {ventana.vencida ? (
+              <>⛔ La ventana de devolución venció (la empresa permite hasta {ventana.dias_limite} días).</>
+            ) : (
+              <>🕐 Te quedan <strong>{ventana.dias_restantes} {ventana.dias_restantes === 1 ? 'día' : 'días'}</strong> para solicitar esta devolución (política: {ventana.dias_limite} días desde la entrega).</>
+            )}
+          </div>
+        )}
 
         {/* Info del pedido */}
         <motion.div

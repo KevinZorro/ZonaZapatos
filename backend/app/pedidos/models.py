@@ -45,6 +45,7 @@ class Pedido(Base):
         default=CanalContactoEnum.web,
         nullable=False,
     )
+    motivo_rechazo = Column(Text, nullable=True)
     cliente_id = Column(
         Integer, ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False
     )

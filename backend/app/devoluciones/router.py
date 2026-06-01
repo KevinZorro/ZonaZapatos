@@ -112,6 +112,36 @@ async def crear_devolucion(
                 detail="Solo se pueden solicitar devoluciones de pedidos entregados"
             )
 
+        # Validar ventana de devolución según política de la(s) empresa(s)
+        # Se aplica la política más ESTRICTA entre las empresas de los productos del pedido.
+        if pedido.fecha_entrega:
+            from datetime import datetime as _dt, timezone as _tz
+            empresas_ids = {
+                it.producto.empresa_id for it in pedido.items
+                if it.producto and it.producto.empresa_id is not None
+            }
+            if empresas_ids:
+                from app.usuarios.models import Empresa as _Empresa
+                empresas = db.query(_Empresa).filter(_Empresa.id.in_(empresas_ids)).all()
+                dias_limite = min(
+                    (e.dias_devolucion or 15) for e in empresas
+                ) if empresas else 15
+
+                ahora = _dt.now(_tz.utc)
+                fecha_entrega = pedido.fecha_entrega
+                if fecha_entrega.tzinfo is None:
+                    fecha_entrega = fecha_entrega.replace(tzinfo=_tz.utc)
+                dias_transcurridos = (ahora - fecha_entrega).days
+                if dias_transcurridos > dias_limite:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"La ventana de devolución expiró "
+                            f"({dias_transcurridos} días desde la entrega, "
+                            f"límite: {dias_limite} días)."
+                        ),
+                    )
+
         # Verificar que el pedido no tenga ya una devolución
         print(f"DEBUG POST: Verificando devolución existente")
         devolucion_existente = db.query(Devolucion).filter(
@@ -254,6 +284,58 @@ async def crear_devolucion(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error interno al crear la devolución: {str(e)}")
+
+@router.get("/pedido/{pedido_id}/ventana")
+async def info_ventana_devolucion(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    current_user_payload: dict = Depends(get_current_user),
+):
+    """Devuelve la política de devolución aplicable y los días restantes para este pedido."""
+    from datetime import datetime as _dt, timezone as _tz
+
+    current_user_id = int(current_user_payload.get("sub", 0))
+    cliente = db.query(Cliente).filter(Cliente.usuario_id == current_user_id).first()
+    if not cliente:
+        raise HTTPException(status_code=403, detail="No tienes permisos de cliente")
+
+    pedido = db.query(Pedido).options(
+        joinedload(Pedido.items).joinedload(ItemPedido.producto)
+    ).filter(
+        Pedido.id == pedido_id,
+        Pedido.cliente_id == cliente.id,
+    ).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    empresas_ids = {
+        it.producto.empresa_id for it in pedido.items
+        if it.producto and it.producto.empresa_id is not None
+    }
+    from app.usuarios.models import Empresa as _Empresa
+    empresas = db.query(_Empresa).filter(_Empresa.id.in_(empresas_ids)).all() if empresas_ids else []
+    dias_limite = min((e.dias_devolucion or 15) for e in empresas) if empresas else 15
+
+    if not pedido.fecha_entrega:
+        return {
+            "dias_limite": dias_limite,
+            "dias_restantes": None,
+            "vencida": False,
+            "entregado": False,
+        }
+
+    fecha_entrega = pedido.fecha_entrega
+    if fecha_entrega.tzinfo is None:
+        fecha_entrega = fecha_entrega.replace(tzinfo=_tz.utc)
+    dias_transcurridos = (_dt.now(_tz.utc) - fecha_entrega).days
+    dias_restantes = dias_limite - dias_transcurridos
+    return {
+        "dias_limite": dias_limite,
+        "dias_restantes": max(dias_restantes, 0),
+        "vencida": dias_restantes < 0,
+        "entregado": True,
+    }
+
 
 @router.get("/pedido/{pedido_id}")
 async def obtener_devolucion_por_pedido(

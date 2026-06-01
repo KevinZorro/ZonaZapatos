@@ -40,6 +40,7 @@ class PedidoOut(BaseModel):
     fecha_entrega: datetime | None = None
     total: float
     canal_contacto: str
+    motivo_rechazo: str | None = None
     items: list[ItemPedidoOut] = []
     encuesta_id: int | None = None
 
