@@ -18,19 +18,27 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        'pedidos',
-        sa.Column('motivo_rechazo', sa.Text(), nullable=True),
-    )
-    op.add_column(
-        'empresas',
-        sa.Column(
-            'dias_devolucion',
-            sa.Integer(),
-            nullable=False,
-            server_default='15',
-        ),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    pedido_cols = {c['name'] for c in inspector.get_columns('pedidos')}
+    if 'motivo_rechazo' not in pedido_cols:
+        op.add_column(
+            'pedidos',
+            sa.Column('motivo_rechazo', sa.Text(), nullable=True),
+        )
+
+    empresa_cols = {c['name'] for c in inspector.get_columns('empresas')}
+    if 'dias_devolucion' not in empresa_cols:
+        op.add_column(
+            'empresas',
+            sa.Column(
+                'dias_devolucion',
+                sa.Integer(),
+                nullable=False,
+                server_default='15',
+            ),
+        )
 
 
 def downgrade() -> None:

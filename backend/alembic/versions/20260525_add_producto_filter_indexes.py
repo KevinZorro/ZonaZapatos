@@ -7,6 +7,7 @@ Create Date: 2026-05-25 00:00:00.000000
 """
 from typing import Sequence, Union
 
+import sqlalchemy as sa
 from alembic import op
 
 
@@ -16,19 +17,34 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-def upgrade() -> None:
-    # Filtros frecuentes en /productos (estado, empresa_id, precio, talla)
-    op.create_index('ix_productos_estado',     'productos', ['estado'])
-    op.create_index('ix_productos_empresa_id', 'productos', ['empresa_id'])
-    op.create_index('ix_productos_precio',     'productos', ['precio'])
-    op.create_index('ix_productos_talla',      'productos', ['talla'])
+def _existing_indexes(inspector, table: str) -> set:
+    try:
+        return {ix['name'] for ix in inspector.get_indexes(table)}
+    except Exception:
+        return set()
 
-    # Reseñas: lookup por producto_id (también acelera el GROUP BY agregado)
-    op.create_index(
-        'ix_encuestas_producto_respondida',
-        'encuestas_satisfaccion',
-        ['producto_id', 'respondida'],
-    )
+
+def upgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    prod_idx = _existing_indexes(inspector, 'productos')
+    if 'ix_productos_estado' not in prod_idx:
+        op.create_index('ix_productos_estado', 'productos', ['estado'])
+    if 'ix_productos_empresa_id' not in prod_idx:
+        op.create_index('ix_productos_empresa_id', 'productos', ['empresa_id'])
+    if 'ix_productos_precio' not in prod_idx:
+        op.create_index('ix_productos_precio', 'productos', ['precio'])
+    if 'ix_productos_talla' not in prod_idx:
+        op.create_index('ix_productos_talla', 'productos', ['talla'])
+
+    enc_idx = _existing_indexes(inspector, 'encuestas_satisfaccion')
+    if 'ix_encuestas_producto_respondida' not in enc_idx:
+        op.create_index(
+            'ix_encuestas_producto_respondida',
+            'encuestas_satisfaccion',
+            ['producto_id', 'respondida'],
+        )
 
 
 def downgrade() -> None:
