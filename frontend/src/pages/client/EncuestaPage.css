@@ -240,3 +240,82 @@
     font-size: 2rem;
   }
 }
+
+/* ── Dark mode ───────────────────────────────────────────────────────── */
+:root[data-theme='dark'] .encuesta-page {
+  background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+}
+
+:root[data-theme='dark'] .encuesta-container {
+  background: #1F2937;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='dark'] .encuesta-header h1,
+:root[data-theme='dark'] .encuesta-success h2 {
+  color: #F3F4F6;
+}
+
+:root[data-theme='dark'] .encuesta-subtitle,
+:root[data-theme='dark'] .encuesta-loading,
+:root[data-theme='dark'] .encuesta-success p {
+  color: #9CA3AF;
+}
+
+:root[data-theme='dark'] .encuesta-subtitle strong {
+  color: #2DD4BF;
+}
+
+:root[data-theme='dark'] .encuesta-label {
+  color: #E5E7EB;
+}
+
+:root[data-theme='dark'] .encuesta-star {
+  color: #4B5563;
+}
+
+:root[data-theme='dark'] .encuesta-stars-labels,
+:root[data-theme='dark'] .encuesta-char-count,
+:root[data-theme='dark'] .encuesta-info {
+  color: #6B7280;
+}
+
+:root[data-theme='dark'] .encuesta-info {
+  border-top-color: #374151;
+}
+
+:root[data-theme='dark'] .encuesta-textarea {
+  background: #111827;
+  border-color: #374151;
+  color: #F3F4F6;
+}
+
+:root[data-theme='dark'] .encuesta-textarea::placeholder {
+  color: #6B7280;
+}
+
+:root[data-theme='dark'] .encuesta-textarea:focus {
+  border-color: #2DD4BF;
+}
+
+:root[data-theme='dark'] .encuesta-error-message {
+  background: rgba(220, 38, 38, 0.18);
+  color: #FCA5A5;
+}
+
+:root[data-theme='dark'] .encuesta-btn--secondary {
+  color: #9CA3AF;
+  border-color: #374151;
+}
+:root[data-theme='dark'] .encuesta-btn--secondary:hover:not(:disabled) {
+  color: #2DD4BF;
+  border-color: #2DD4BF;
+}
+
+:root[data-theme='dark'] .encuesta-error p {
+  color: #FCA5A5;
+}
+
+:root[data-theme='dark'] .encuesta-redirect {
+  color: #2DD4BF !important;
+}

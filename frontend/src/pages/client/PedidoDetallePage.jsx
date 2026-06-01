@@ -2,12 +2,33 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../../services/api'
-import { 
-  responderEncuesta, 
-  getEncuestasRespondidasPorPedido, 
-  actualizarEncuesta, 
-  eliminarEncuesta 
+import {
+  responderEncuesta,
+  getEncuestasRespondidasPorPedido,
+  actualizarEncuesta,
+  eliminarEncuesta
 } from '../../services/encuestas'
+import useTheme from '../../context/useTheme'
+
+// Paleta para los formularios de reseña según tema
+function useResenaColors() {
+  const { isDark } = useTheme()
+  return isDark
+    ? {
+        formBg: '#1F2937', formBorder: '#374151',
+        label: '#E5E7EB', textareaBg: '#111827', textareaBorder: '#374151', textareaText: '#F3F4F6',
+        starEmpty: '#4B5563', muted: '#6B7280',
+        cancelBg: '#374151', cancelText: '#E5E7EB',
+        disabledBg: '#374151', disabledText: '#9CA3AF',
+      }
+    : {
+        formBg: '#fff', formBorder: '#e5e7eb',
+        label: '#1f2937', textareaBg: '#f9fafb', textareaBorder: '#e5e7eb', textareaText: '#111827',
+        starEmpty: '#d1d5db', muted: '#9ca3af',
+        cancelBg: '#f3f4f6', cancelText: '#374151',
+        disabledBg: '#f3f4f6', disabledText: '#9ca3af',
+      }
+}
 
 const ESTADOS_PEDIDO = {
   pendiente:  { label: 'Pendiente',  classes: 'bg-gray-100 text-gray-500',   descripcion: 'Tu pedido fue recibido y está esperando confirmación por parte de la empresa.' },
@@ -58,6 +79,7 @@ function ResenaForm({ onSubmit, submitting }) {
   const [calificacion, setCalificacion] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [comentario, setComentario] = useState('')
+  const c = useResenaColors()
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -66,9 +88,9 @@ function ResenaForm({ onSubmit, submitting }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+    <form onSubmit={handleSubmit} style={{ backgroundColor: c.formBg, padding: '16px', borderRadius: '12px', border: `1px solid ${c.formBorder}` }}>
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: c.label, marginBottom: '8px' }}>
           Tu calificación
         </label>
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -76,9 +98,9 @@ function ResenaForm({ onSubmit, submitting }) {
             <button
               key={star}
               type="button"
-              style={{ 
-                fontSize: '24px', 
-                color: star <= (hoverRating || calificacion) ? '#fbbf24' : '#d1d5db',
+              style={{
+                fontSize: '24px',
+                color: star <= (hoverRating || calificacion) ? '#fbbf24' : c.starEmpty,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -100,7 +122,7 @@ function ResenaForm({ onSubmit, submitting }) {
       </div>
 
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: c.label, marginBottom: '8px' }}>
           Comentario (opcional)
         </label>
         <textarea
@@ -112,14 +134,15 @@ function ResenaForm({ onSubmit, submitting }) {
           style={{
             width: '100%',
             padding: '8px 12px',
-            backgroundColor: '#f9fafb',
-            border: '1px solid #e5e7eb',
+            backgroundColor: c.textareaBg,
+            border: `1px solid ${c.textareaBorder}`,
+            color: c.textareaText,
             borderRadius: '8px',
             fontSize: '14px',
             resize: 'none'
           }}
         />
-        <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'right', marginTop: '4px' }}>
+        <p style={{ fontSize: '12px', color: c.muted, textAlign: 'right', marginTop: '4px' }}>
           {comentario.length}/500
         </p>
       </div>
@@ -130,8 +153,8 @@ function ResenaForm({ onSubmit, submitting }) {
         style={{
           width: '100%',
           padding: '12px 24px',
-          backgroundColor: calificacion === 0 ? '#f3f4f6' : '#db2777',
-          color: calificacion === 0 ? '#9ca3af' : '#fff',
+          backgroundColor: calificacion === 0 ? c.disabledBg : '#db2777',
+          color: calificacion === 0 ? c.disabledText : '#fff',
           fontWeight: '700',
           borderRadius: '12px',
           border: 'none',
@@ -149,6 +172,7 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
   const [calificacion, setCalificacion] = useState(initialCalificacion)
   const [hoverRating, setHoverRating] = useState(0)
   const [comentario, setComentario] = useState(initialComentario)
+  const c = useResenaColors()
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -157,9 +181,9 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+    <form onSubmit={handleSubmit} style={{ backgroundColor: c.textareaBg, padding: '16px', borderRadius: '12px', border: `1px solid ${c.formBorder}` }}>
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: c.label, marginBottom: '8px' }}>
           Tu calificación
         </label>
         <div style={{ display: 'flex', gap: '4px' }}>
@@ -167,9 +191,9 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
             <button
               key={star}
               type="button"
-              style={{ 
-                fontSize: '24px', 
-                color: star <= (hoverRating || calificacion) ? '#fbbf24' : '#d1d5db',
+              style={{
+                fontSize: '24px',
+                color: star <= (hoverRating || calificacion) ? '#fbbf24' : c.starEmpty,
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
@@ -191,7 +215,7 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
       </div>
 
       <div style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1f2937', marginBottom: '8px' }}>
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: c.label, marginBottom: '8px' }}>
           Comentario (opcional)
         </label>
         <textarea
@@ -203,14 +227,15 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
           style={{
             width: '100%',
             padding: '8px 12px',
-            backgroundColor: '#fff',
-            border: '1px solid #e5e7eb',
+            backgroundColor: c.formBg,
+            border: `1px solid ${c.textareaBorder}`,
+            color: c.textareaText,
             borderRadius: '8px',
             fontSize: '14px',
             resize: 'none'
           }}
         />
-        <p style={{ fontSize: '12px', color: '#9ca3af', textAlign: 'right', marginTop: '4px' }}>
+        <p style={{ fontSize: '12px', color: c.muted, textAlign: 'right', marginTop: '4px' }}>
           {comentario.length}/500
         </p>
       </div>
@@ -223,8 +248,8 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
           style={{
             flex: '1',
             padding: '12px 24px',
-            backgroundColor: '#f3f4f6',
-            color: '#374151',
+            backgroundColor: c.cancelBg,
+            color: c.cancelText,
             fontWeight: '600',
             borderRadius: '12px',
             border: 'none',
@@ -240,8 +265,8 @@ function ResenaFormEdit({ initialCalificacion, initialComentario, onSubmit, onCa
           style={{
             flex: '2',
             padding: '12px 24px',
-            backgroundColor: calificacion === 0 ? '#f3f4f6' : '#db2777',
-            color: calificacion === 0 ? '#9ca3af' : '#fff',
+            backgroundColor: calificacion === 0 ? c.disabledBg : '#db2777',
+            color: calificacion === 0 ? c.disabledText : '#fff',
             fontWeight: '700',
             borderRadius: '12px',
             border: 'none',
