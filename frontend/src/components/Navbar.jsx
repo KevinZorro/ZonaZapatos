@@ -76,6 +76,9 @@ export default function Navbar() {
           <NavLink to="/empresa/productos" className={({ isActive }) => `nb-link ${isActive ? 'is-active' : ''}`}>
             <span>Productos</span>
           </NavLink>
+          <NavLink to="/empresa/pedidos" className={({ isActive }) => `nb-link ${isActive ? 'is-active' : ''}`}>
+            <span>Pedidos</span>
+          </NavLink>
           <NavLink to="/empresa/devoluciones" className={({ isActive }) => `nb-link ${isActive ? 'is-active' : ''}`}>
             <span>Devoluciones</span>
           </NavLink>

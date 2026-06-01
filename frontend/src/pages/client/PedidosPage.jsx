@@ -24,10 +24,10 @@ const ESTADOS_PEDIDO = {
     classes: 'bg-green-50 text-green-700',
     descripcion: 'Tu pedido fue entregado exitosamente. ¡Gracias por tu compra!'
   },
-  cancelado: { 
-    label: 'Cancelado',  
+  cancelado: {
+    label: 'Cancelado',
     classes: 'bg-red-50 text-red-600',
-    descripcion: 'Este pedido fue cancelado. Contáctanos si tienes alguna duda.'
+    descripcion: 'Este pedido fue cancelado o rechazado por la empresa.'
   },
 }
 
@@ -110,6 +110,13 @@ function PedidoCard({ pedido, index, devolucion }) {
               day: '2-digit', month: 'short', year: 'numeric'
             })}
           </span>
+          {/* Motivo de rechazo si aplica */}
+          {pedido.estado === 'cancelado' && pedido.motivo_rechazo && (
+            <div className="mt-2 mb-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">
+              <strong>Motivo:</strong> {pedido.motivo_rechazo}
+            </div>
+          )}
+
           {/* Marca de division */}
           <div className="border-t border-gray-300 !mt-4 !mb-8"></div>
         </div>

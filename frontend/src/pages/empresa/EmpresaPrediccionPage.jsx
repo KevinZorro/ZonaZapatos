@@ -19,6 +19,22 @@ export default function EmpresaPrediccionPage() {
   const [resultados, setResultados] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
+  const [reentrenando, setReentrenando] = useState(false);
+  const [reentrenoInfo, setReentrenoInfo] = useState(null);
+
+  const reentrenarModelo = async () => {
+    setReentrenando(true);
+    setReentrenoInfo(null);
+    setError(null);
+    try {
+      const { data } = await api.post("/empresa/prediccion/reentrenar");
+      setReentrenoInfo(data);
+    } catch (err) {
+      setError(err.response?.data?.detail || "No se pudo reentrenar el modelo.");
+    } finally {
+      setReentrenando(false);
+    }
+  };
 
   useEffect(() => {
     api.get("/empresa/productos")
@@ -79,6 +95,32 @@ export default function EmpresaPrediccionPage() {
       <p className="prediccion-subtitulo">
         Estima cuántas unidades venderás en las próximas 4 semanas y entiende por qué.
       </p>
+
+      {/* Reentrenar modelo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button
+          onClick={reentrenarModelo}
+          disabled={reentrenando}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 8,
+            border: '1px solid #4F46E5',
+            background: reentrenando ? '#EEF2FF' : '#4F46E5',
+            color: reentrenando ? '#4F46E5' : 'white',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: reentrenando ? 'wait' : 'pointer',
+          }}
+        >
+          {reentrenando ? '⏳ Reentrenando…' : '🔁 Reentrenar modelo con datos actuales'}
+        </button>
+        {reentrenoInfo && (
+          <span style={{ fontSize: 13, color: '#065F46' }}>
+            ✓ {reentrenoInfo.semanas_entrenadas} semanas · prom {reentrenoInfo.promedio_semanal}/sem
+            {reentrenoInfo.mae_validacion != null && ` · MAE ${reentrenoInfo.mae_validacion}`}
+          </span>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="modo-botones">
@@ -149,6 +191,11 @@ export default function EmpresaPrediccionPage() {
                   </span>
                   <span className="resultado-label">unidades estimadas</span>
                   <span className="resultado-periodo">en las próximas 4 semanas</span>
+                  {resultado.intervalo_inferior != null && resultado.intervalo_superior != null && (
+                    <span style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                      Rango probable: {Math.round(resultado.intervalo_inferior)} – {Math.round(resultado.intervalo_superior)} uds (95% confianza)
+                    </span>
+                  )}
                 </div>
 
                 {/* Badge de nivel */}
@@ -271,6 +318,11 @@ export default function EmpresaPrediccionPage() {
                           {Math.round(r.unidades_estimadas)}
                         </span>
                         <span className="conjunto-resultado-uds-label">uds.</span>
+                        {r.intervalo_inferior != null && (
+                          <span style={{ fontSize: 11, color: '#6B7280', display: 'block' }}>
+                            ({Math.round(r.intervalo_inferior)}–{Math.round(r.intervalo_superior)})
+                          </span>
+                        )}
                         <span
                           className="nivel-badge-small"
                           style={{ background: cfg.bg, color: cfg.color }}

@@ -20,6 +20,11 @@ export default function ProfilePage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [form, setForm] = useState({})
 
+  // Política de devoluciones (solo empresa)
+  const [diasDevolucion, setDiasDevolucion] = useState(15)
+  const [savingDias, setSavingDias] = useState(false)
+  const [diasMsg, setDiasMsg] = useState('')
+
   useEffect(() => {
     api.get('/me')
       .then(({ data }) => {
@@ -31,10 +36,33 @@ export default function ProfilePage() {
           ciudad:    data.ciudad    || '',
           whatsapp:  data.whatsapp  || '',
         })
+        if (data.rol === 'empresa') {
+          api.get('/empresa/configuracion/devoluciones')
+            .then(({ data: cfg }) => setDiasDevolucion(cfg.dias_devolucion))
+            .catch(() => {})
+        }
       })
       .catch(() => setErrorMsg('No se pudo cargar el perfil'))
       .finally(() => setLoading(false))
   }, [])
+
+  const handleSaveDias = async (e) => {
+    e.preventDefault()
+    setSavingDias(true)
+    setDiasMsg('')
+    try {
+      const { data } = await api.put('/empresa/configuracion/devoluciones', {
+        dias_devolucion: Number(diasDevolucion),
+      })
+      setDiasDevolucion(data.dias_devolucion)
+      setDiasMsg('Política actualizada')
+      setTimeout(() => setDiasMsg(''), 3000)
+    } catch (err) {
+      setDiasMsg(err.response?.data?.detail || 'No se pudo guardar')
+    } finally {
+      setSavingDias(false)
+    }
+  }
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
@@ -223,6 +251,42 @@ export default function ProfilePage() {
               </div>
             </form>
           </section>
+
+          {/* Política de devoluciones (solo empresa) */}
+          {esEmpresa && (
+            <section className="profile-section">
+              <h3 className="profile-section__title">Política de devoluciones</h3>
+              <p className="profile-section__desc">
+                Define cuántos días después de la entrega tus clientes pueden solicitar una devolución.
+              </p>
+              <form onSubmit={handleSaveDias} className="profile-form">
+                <div className="profile-form__grid">
+                  <div className="profile-field">
+                    <label className="profile-label">Días para solicitar devolución</label>
+                    <input
+                      className="profile-input"
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={diasDevolucion}
+                      onChange={(e) => setDiasDevolucion(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {diasMsg && <p className="profile-success" style={{ marginTop: 8 }}>{diasMsg}</p>}
+                <div className="profile-form__actions">
+                  <motion.button
+                    type="submit"
+                    className="profile-btn profile-btn--primary"
+                    disabled={savingDias}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    {savingDias ? 'Guardando…' : 'Guardar política'}
+                  </motion.button>
+                </div>
+              </form>
+            </section>
+          )}
 
           {/* Zona de peligro */}
           <section className="profile-section profile-section--danger">
