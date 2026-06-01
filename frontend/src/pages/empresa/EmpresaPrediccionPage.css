@@ -294,3 +294,94 @@
   padding: 1rem;
   color: #DC2626;
 }
+
+/* ── Dark mode ───────────────────────────────────────────────────────── */
+:root[data-theme='dark'] .prediccion-titulo,
+:root[data-theme='dark'] .resultado-nombre,
+:root[data-theme='dark'] .resultado-numero,
+:root[data-theme='dark'] .conjunto-resultados-titulo,
+:root[data-theme='dark'] .conjunto-resultado-nombre,
+:root[data-theme='dark'] .conjunto-resultado-unidades {
+  color: var(--text, #F3F4F6);
+}
+
+:root[data-theme='dark'] .prediccion-subtitulo,
+:root[data-theme='dark'] .resultado-label,
+:root[data-theme='dark'] .conjunto-resultado-consejo {
+  color: #9CA3AF;
+}
+
+:root[data-theme='dark'] .resultado-periodo,
+:root[data-theme='dark'] .conjunto-resultado-uds-label,
+:root[data-theme='dark'] .conjunto-resultado-factores {
+  color: #6B7280;
+}
+
+:root[data-theme='dark'] .modo-btn.activo {
+  background: #F3F4F6;
+  color: #111827;
+}
+:root[data-theme='dark'] .modo-btn.inactivo {
+  background: #1F2937;
+  color: #D1D5DB;
+}
+
+:root[data-theme='dark'] .prediccion-select,
+:root[data-theme='dark'] .conjunto-lista {
+  background: #111827;
+  border-color: #374151;
+  color: #F3F4F6;
+}
+
+:root[data-theme='dark'] .prediccion-btn.activo {
+  background: #F3F4F6;
+  color: #111827;
+}
+:root[data-theme='dark'] .prediccion-btn.deshabilitado {
+  background: #374151;
+  color: #9CA3AF;
+}
+
+:root[data-theme='dark'] .resultado-card {
+  background: #111827;
+  border-color: #1F4435;
+}
+
+:root[data-theme='dark'] .consejo-box {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+:root[data-theme='dark'] .consejo-titulo { color: #93C5FD; }
+:root[data-theme='dark'] .consejo-texto  { color: #BFDBFE; }
+
+:root[data-theme='dark'] .explicacion-box {
+  background: #111827;
+  border-color: #374151;
+}
+:root[data-theme='dark'] .explicacion-titulo { color: #E5E7EB; }
+:root[data-theme='dark'] .explicacion-texto  { color: #9CA3AF; }
+
+:root[data-theme='dark'] .explicacion-barra-wrap {
+  background: #1F2937;
+}
+:root[data-theme='dark'] .explicacion-barra {
+  background: #F3F4F6;
+}
+
+:root[data-theme='dark'] .conjunto-item {
+  border-bottom-color: #1F2937;
+  color: #E5E7EB;
+}
+:root[data-theme='dark'] .conjunto-item.normal       { background: #111827; }
+:root[data-theme='dark'] .conjunto-item.seleccionado { background: rgba(34, 197, 94, 0.18); }
+
+:root[data-theme='dark'] .conjunto-resultado-card {
+  background: #111827;
+  border-color: #374151;
+}
+
+:root[data-theme='dark'] .error-box {
+  background: rgba(220, 38, 38, 0.18);
+  border-color: rgba(220, 38, 38, 0.45);
+  color: #FCA5A5;
+}
