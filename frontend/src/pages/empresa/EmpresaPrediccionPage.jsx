@@ -1,16 +1,30 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import api from "../../services/api";
+import useTheme from "../../context/useTheme";
 import "./EmpresaPrediccionPage.css";
 
-const NIVEL_CONFIG = {
+const NIVEL_CONFIG_LIGHT = {
   "muy alta": { emoji: "🔥", color: "#065F46", bg: "#D1FAE5", border: "#6EE7B7" },
   "alta":     { emoji: "📈", color: "#065F46", bg: "#D1FAE5", border: "#6EE7B7" },
   "moderada": { emoji: "📊", color: "#1E40AF", bg: "#DBEAFE", border: "#93C5FD" },
   "baja":     { emoji: "📉", color: "#92400E", bg: "#FEF3C7", border: "#FCD34D" },
 };
 
+const NIVEL_CONFIG_DARK = {
+  "muy alta": { emoji: "🔥", color: "#A7F3D0", bg: "rgba(16,185,129,0.18)", border: "rgba(16,185,129,0.45)" },
+  "alta":     { emoji: "📈", color: "#A7F3D0", bg: "rgba(16,185,129,0.18)", border: "rgba(16,185,129,0.45)" },
+  "moderada": { emoji: "📊", color: "#BFDBFE", bg: "rgba(59,130,246,0.18)", border: "rgba(59,130,246,0.45)" },
+  "baja":     { emoji: "📉", color: "#FDE68A", bg: "rgba(217,119,6,0.18)",  border: "rgba(217,119,6,0.45)" },
+};
+
+const NEUTRAL_LIGHT = { bg: "#F9FAFB", border: "#E5E7EB" };
+const NEUTRAL_DARK  = { bg: "#111827", border: "#374151" };
+
 export default function EmpresaPrediccionPage() {
+  const { isDark } = useTheme();
+  const NIVEL_CONFIG = isDark ? NIVEL_CONFIG_DARK : NIVEL_CONFIG_LIGHT;
+  const NEUTRAL = isDark ? NEUTRAL_DARK : NEUTRAL_LIGHT;
   const [productos, setProductos] = useState([]);
   const [modo, setModo] = useState("individual");
   const [seleccionado, setSeleccionado] = useState(null);
@@ -292,8 +306,8 @@ export default function EmpresaPrediccionPage() {
                     key={r.producto_id}
                     className="conjunto-resultado-card"
                     style={{
-                      borderColor: i === 0 ? cfg.border : "#E5E7EB",
-                      background: i === 0 ? cfg.bg : "#F9FAFB",
+                      borderColor: i === 0 ? cfg.border : NEUTRAL.border,
+                      background: i === 0 ? cfg.bg : NEUTRAL.bg,
                     }}
                   >
                     <div className="conjunto-resultado-header">
