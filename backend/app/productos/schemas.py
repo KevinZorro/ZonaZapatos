@@ -1,99 +1,97 @@
-"""Productos schemas — Pydantic models for request/response."""
-from datetime import datetime
-
-from pydantic import BaseModel, field_serializer
-
-
-class CategoriaOut(BaseModel):
-    id: int
-    nombre: str
-
-    model_config = {"from_attributes": True}
+"""Productos schemas."""
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 
-class MediaArchivoOut(BaseModel):
+class MediaResumen(BaseModel):
     id: int
     cloudinary_url: str
     tipo: str
-    formato: str | None = None
+    formato: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
 
-class ProductoOut(BaseModel):
+class CategoriaResumen(BaseModel):
     id: int
     nombre: str
-    descripcion: str | None = None
-    precio: float
-    estado: str
-    talla: str | None = None
-    color: str | None = None
-    stock: int
-    empresa_id: int
-    empresa_nombre: str | None = None
-    empresa_whatsapp: str | None = None
-    modelo_3d_url: str | None = None
-    categorias: list[CategoriaOut] = []
-    media: list[MediaArchivoOut] = []
-    promedio_resenas: float = 0
-    total_resenas: int = 0
+    descripcion: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
-    @classmethod
-    def from_orm_with_empresa(cls, obj):
-        data = cls.model_validate(obj)
-        if obj.empresa:
-            data.empresa_nombre = obj.empresa.nombre
-            data.empresa_whatsapp = obj.empresa.whatsapp
-        return data
+
+class ProductoBase(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=255)
+    descripcion: Optional[str] = None
+    precio: float = Field(..., gt=0)
+    talla: Optional[str] = None
+    color: Optional[str] = None
+    stock: int = Field(default=0, ge=0)
+    estado: str = Field(default="activo")
+    dias_garantia: int = Field(default=90, ge=30, le=1095)
 
 
-class ProductoCreate(BaseModel):
-    nombre: str
-    descripcion: str | None = None
-    precio: float
-    talla: str | None = None
-    color: str | None = None
-    stock: int = 0
-    categoria_ids: list[int] = []
+class ProductoCreate(ProductoBase):
+    empresa_id: Optional[int] = None
 
 
 class ProductoUpdate(BaseModel):
-    nombre: str | None = None
-    descripcion: str | None = None
-    precio: float | None = None
-    talla: str | None = None
-    color: str | None = None
-    stock: int | None = None
-    estado: str | None = None
-    categoria_ids: list[int] | None = None
+    nombre: Optional[str] = Field(None, min_length=1, max_length=255)
+    descripcion: Optional[str] = None
+    precio: Optional[float] = Field(None, gt=0)
+    talla: Optional[str] = None
+    color: Optional[str] = None
+    stock: Optional[int] = Field(None, ge=0)
+    estado: Optional[str] = None
+    dias_garantia: Optional[int] = Field(None, ge=30, le=1095)
+
+
+from datetime import datetime
+
+class ProductoOut(ProductoBase):
+    id: int
+    creado_en: datetime
+    actualizado_en: datetime
+    empresa_id: int
+    empresa_nombre: Optional[str] = None
+    media: List[MediaResumen] = []
+    categorias: List[CategoriaResumen] = []
+    modelo_3d_url: Optional[str] = None
+    promedio_resenas: Optional[float] = None
+    total_resenas: Optional[int] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ProductoResumen(BaseModel):
+    id: int
+    nombre: str
+    precio: float
+    talla: Optional[str] = None
+    color: Optional[str] = None
+    stock: int
+    estado: str
+    dias_garantia: int
+    media: List[MediaResumen] = []
+
+    model_config = {"from_attributes": True}
 
 
 class ProductoListResponse(BaseModel):
     total: int
     page: int
     page_size: int
-    items: list[ProductoOut]
-
-
-class ClienteResenaOut(BaseModel):
-    id: int
-    nombre: str
-    avatar_url: str | None = None
-    inicial: str  # Primera letra del nombre para mostrar si no hay avatar
-
-    model_config = {"from_attributes": True}
+    items: List[ProductoOut]
 
 
 class ResenaOut(BaseModel):
     id: int
     calificacion: int
-    comentario: str | None = None
-    respondida_en: str | None = None
+    comentario: Optional[str] = None
+    respondida_en: Optional[str] = None
     pedido_id: int
-    cliente_id: int | None = None  # ID del cliente autor de la reseña
-    cliente: ClienteResenaOut | None = None
+    cliente_id: Optional[int] = None
+    cliente: Optional[dict] = None
 
     model_config = {"from_attributes": True}
 
@@ -101,5 +99,17 @@ class ResenaOut(BaseModel):
 class ResenasSummary(BaseModel):
     promedio: float
     total: int
-    distribucion: dict[int, int]  # {1: count, 2: count, ...}
-    resenas: list[ResenaOut]
+    distribucion: dict
+    resenas: List[ResenaOut]
+
+    model_config = {"from_attributes": True}
+
+
+OPCIONES_GARANTIA = [
+    {"value": 30, "label": "1 mes (30 días)"},
+    {"value": 60, "label": "2 meses (60 días)"},
+    {"value": 90, "label": "3 meses (90 días)"},
+    {"value": 180, "label": "6 meses (180 días)"},
+    {"value": 365, "label": "1 año (365 días) - Garantía legal mínima"},
+    {"value": 1095, "label": "3 años (1095 días) - Máximo"},
+]

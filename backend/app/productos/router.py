@@ -15,8 +15,10 @@ from app.productos.schemas import (
     ProductoListResponse,
     ProductoOut,
     ProductoUpdate,
+    ProductoResumen,
     ResenaOut,
     ResenasSummary,
+    OPCIONES_GARANTIA,
 )
 from app.usuarios.models import Empresa
 
@@ -68,7 +70,8 @@ def _serialize_producto(
     db: Session = None,
     resenas_map: dict[int, tuple[float, int]] | None = None,
 ) -> ProductoOut:
-    data = ProductoOut.from_orm_with_empresa(producto)
+    data = ProductoOut.model_validate(producto, from_attributes=True)
+    data.empresa_nombre = producto.empresa.nombre if producto.empresa else None
     modelo_3d = next((media for media in producto.media if media.tipo == "modelo_3d"), None)
     data.modelo_3d_url = (
         modelo_3d.cloudinary_url
@@ -133,6 +136,12 @@ def _get_media_kind(file: UploadFile) -> tuple[TipoMediaEnum, str | None]:
 def list_categorias(response: Response, db: Session = Depends(get_db)):
     response.headers["Cache-Control"] = "public, max-age=300"
     return db.query(Categoria).all()
+
+
+@router.get("/opciones-garantia")
+def get_opciones_garantia():
+    """Opciones predefinidas de días de garantía para el selector en el frontend."""
+    return OPCIONES_GARANTIA
 
 
 @router.get("/empresas-publicas")
@@ -357,6 +366,7 @@ def create_producto(
         talla=body.talla,
         color=body.color,
         stock=body.stock,
+        dias_garantia=body.dias_garantia,
         empresa_id=empresa.id,
         categorias=categorias,
     )
@@ -441,6 +451,8 @@ def update_producto(
             producto.estado = EstadoProductoEnum(body.estado)
         except ValueError:
             raise HTTPException(status_code=400, detail="Estado inválido")
+    if body.dias_garantia is not None:
+        producto.dias_garantia = body.dias_garantia
     if body.categoria_ids is not None:
         producto.categorias = db.query(Categoria).filter(
             Categoria.id.in_(body.categoria_ids)

@@ -13,7 +13,8 @@ from app.devoluciones.schemas import (
     DevolucionCreate, DevolucionOut, DevolucionEstadoUpdate,
     EvidenciaOut, ClienteInfo, ProductoSnapshot, PedidoInfo,
     DevolucionDetalleEmpresa, DevolucionPendienteOut,
-    DevolucionClienteOut, ItemDevolucionOut
+    DevolucionClienteOut, ItemDevolucionOut,
+    PedidoDisponibilidadDevolucion, ItemDisponibilidadDevolucion
 )
 from app.pedidos.models import Pedido, ItemPedido
 from app.productos.models import Producto
@@ -112,35 +113,84 @@ async def crear_devolucion(
                 detail="Solo se pueden solicitar devoluciones de pedidos entregados"
             )
 
-        # Validar ventana de devolución según política de la(s) empresa(s)
-        # Se aplica la política más ESTRICTA entre las empresas de los productos del pedido.
-        if pedido.fecha_entrega:
-            from datetime import datetime as _dt, timezone as _tz
-            empresas_ids = {
-                it.producto.empresa_id for it in pedido.items
-                if it.producto and it.producto.empresa_id is not None
-            }
-            if empresas_ids:
-                from app.usuarios.models import Empresa as _Empresa
-                empresas = db.query(_Empresa).filter(_Empresa.id.in_(empresas_ids)).all()
-                dias_limite = min(
-                    (e.dias_devolucion or 15) for e in empresas
-                ) if empresas else 15
+        # Validar ventana de devolución POR PRODUCTO según motivo
+        # Clasificar motivos
+        MOTIVOS_RETRACTO = {"Talla/Color incorrecto", "No era lo esperado", "Otro"}
+        MOTIVOS_GARANTIA = {"Producto dañado", "Producto defectuoso", "Calidad inferior a la esperada", "Otro"}
 
-                ahora = _dt.now(_tz.utc)
-                fecha_entrega = pedido.fecha_entrega
-                if fecha_entrega.tzinfo is None:
-                    fecha_entrega = fecha_entrega.replace(tzinfo=_tz.utc)
-                dias_transcurridos = (ahora - fecha_entrega).days
-                if dias_transcurridos > dias_limite:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=(
-                            f"La ventana de devolución expiró "
-                            f"({dias_transcurridos} días desde la entrega, "
-                            f"límite: {dias_limite} días)."
-                        ),
-                    )
+        from datetime import datetime as _dt, timezone as _tz
+        ahora = _dt.now(_tz.utc)
+        fecha_entrega = pedido.fecha_entrega
+        if fecha_entrega:
+            if fecha_entrega.tzinfo is None:
+                fecha_entrega = fecha_entrega.replace(tzinfo=_tz.utc)
+            dias_transcurridos_global = (ahora - fecha_entrega).days
+        else:
+            dias_transcurridos_global = None
+
+        # Crear mapa de items del pedido para validación
+        items_pedido_map = {item.id: item for item in pedido.items}
+
+        # Validar items y motivos
+        for item_data in items_data:
+            item_pedido_id = item_data.get("item_pedido_id")
+            motivo = item_data.get("motivo")
+
+            if item_pedido_id not in items_pedido_map:
+                raise HTTPException(status_code=400, detail=f"Item {item_pedido_id} no pertenece al pedido")
+
+            if motivo not in MOTIVOS_PERMITIDOS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Motivo '{motivo}' no válido para item {item_pedido_id}"
+                )
+
+            # Validar ventana según motivo (por producto individual)
+            item_pedido = items_pedido_map[item_pedido_id]
+            producto = item_pedido.producto
+            empresa = producto.empresa if producto else None
+
+            if dias_transcurridos_global is not None and empresa:
+                dias_transcurridos = dias_transcurridos_global
+
+                if motivo == "Otro":
+                    # "Otro" puede ser retracto o garantía — basta con que UNO esté vigente
+                    limite_retracto = empresa.dias_devolucion or 15
+                    limite_garantia = producto.dias_garantia if producto else 365
+                    if dias_transcurridos > limite_retracto and dias_transcurridos > limite_garantia:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=(
+                                f"Período de devolución expirado para '{producto.nombre}'. "
+                                f"Motivo: '{motivo}'. "
+                                f"Retracto expiró a los {limite_retracto} días y garantía a los {limite_garantia} días "
+                                f"(han pasado {dias_transcurridos} días)."
+                            )
+                        )
+                elif motivo in MOTIVOS_RETRACTO:
+                    # Retracto: validar dias_devolucion de la EMPRESA
+                    limite = empresa.dias_devolucion or 15
+                    if dias_transcurridos > limite:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=(
+                                f"Período de devolución expirado para '{producto.nombre}'. "
+                                f"Motivo: '{motivo}' (retracto). "
+                                f"Límite: {limite} días desde entrega (han pasado {dias_transcurridos} días)."
+                            )
+                        )
+                elif motivo in MOTIVOS_GARANTIA:
+                    # Garantía: validar dias_garantia del PRODUCTO
+                    limite = producto.dias_garantia if producto else 365
+                    if dias_transcurridos > limite:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=(
+                                f"Garantía expirada para '{producto.nombre}'. "
+                                f"Motivo: '{motivo}' (garantía). "
+                                f"Límite: {limite} días desde entrega (han pasado {dias_transcurridos} días)."
+                            )
+                        )
 
         # Verificar que el pedido no tenga ya una devolución
         print(f"DEBUG POST: Verificando devolución existente")
@@ -162,23 +212,6 @@ async def crear_devolucion(
                 status_code=400,
                 detail="Debe adjuntar al menos una foto como evidencia"
             )
-
-        # Crear mapa de items del pedido para validación
-        items_pedido_map = {item.id: item for item in pedido.items}
-
-        # Validar items y motivos
-        for item_data in items_data:
-            item_pedido_id = item_data.get("item_pedido_id")
-            motivo = item_data.get("motivo")
-
-            if item_pedido_id not in items_pedido_map:
-                raise HTTPException(status_code=400, detail=f"Item {item_pedido_id} no pertenece al pedido")
-
-            if motivo not in MOTIVOS_PERMITIDOS:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Motivo '{motivo}' no válido para item {item_pedido_id}"
-                )
 
         # Crear la devolución (motivo general será el primero o genérico)
         motivo_general = items_data[0].get("motivo", "Otro")
@@ -335,6 +368,96 @@ async def info_ventana_devolucion(
         "vencida": dias_restantes < 0,
         "entregado": True,
     }
+
+
+@router.get("/pedido/{pedido_id}/disponibilidad", response_model=PedidoDisponibilidadDevolucion)
+async def disponibilidad_devolucion_por_pedido(
+    pedido_id: int,
+    db: Session = Depends(get_db),
+    current_user_payload: dict = Depends(get_current_user),
+):
+    """
+    Retorna por cada item del pedido la disponibilidad de devolución según motivo.
+    Incluye días restantes para retracto (empresa) y garantía (producto).
+    """
+    from datetime import datetime as _dt, timezone as _tz
+
+    current_user_id = int(current_user_payload.get("sub", 0))
+    cliente = db.query(Cliente).filter(Cliente.usuario_id == current_user_id).first()
+    if not cliente:
+        raise HTTPException(status_code=403, detail="No tienes permisos de cliente")
+
+    pedido = db.query(Pedido).options(
+        joinedload(Pedido.items).joinedload(ItemPedido.producto).joinedload(Producto.media)
+    ).filter(
+        Pedido.id == pedido_id,
+        Pedido.cliente_id == cliente.id,
+    ).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+
+    MOTIVOS_RETRACTO = ["Talla/Color incorrecto", "No era lo esperado", "Otro"]
+    MOTIVOS_GARANTIA = ["Producto dañado", "Producto defectuoso", "Calidad inferior a la esperada", "Otro"]
+
+    items_disponibilidad = []
+    for item_pedido in pedido.items:
+        producto = item_pedido.producto
+        empresa = producto.empresa if producto else None
+
+        dias_transcurridos = None
+        if pedido.fecha_entrega:
+            fecha_entrega = pedido.fecha_entrega
+            if fecha_entrega.tzinfo is None:
+                fecha_entrega = fecha_entrega.replace(tzinfo=_tz.utc)
+            dias_transcurridos = (_dt.now(_tz.utc) - fecha_entrega).days
+
+        empresa_dias_devolucion = empresa.dias_devolucion if empresa else 15
+        producto_dias_garantia = producto.dias_garantia if producto else 365
+
+        retracto_disponible = True
+        dias_restantes_retracto = 0
+        garantia_disponible = True
+        dias_restantes_garantia = 0
+
+        if dias_transcurridos is not None:
+            dias_restantes_retracto = max(empresa_dias_devolucion - dias_transcurridos, 0)
+            retracto_disponible = dias_transcurridos <= empresa_dias_devolucion
+
+            dias_restantes_garantia = max(producto_dias_garantia - dias_transcurridos, 0)
+            garantia_disponible = dias_transcurridos <= producto_dias_garantia
+        else:
+            dias_restantes_retracto = empresa_dias_devolucion
+            dias_restantes_garantia = producto_dias_garantia
+
+        imagen_url = None
+        if producto and producto.media:
+            img = next((m for m in producto.media if m.tipo == "imagen"), None)
+            if img:
+                imagen_url = img.cloudinary_url
+        elif item_pedido.producto_imagen_url_snapshot:
+            imagen_url = item_pedido.producto_imagen_url_snapshot
+
+        items_disponibilidad.append(ItemDisponibilidadDevolucion(
+            item_pedido_id=item_pedido.id,
+            producto_id=producto.id if producto else 0,
+            producto_nombre=item_pedido.producto_nombre_snapshot or (producto.nombre if producto else "Producto"),
+            producto_imagen_url=imagen_url,
+            dias_transcurridos=dias_transcurridos,
+            retracto_disponible=retracto_disponible,
+            dias_restantes_retracto=dias_restantes_retracto,
+            garantia_disponible=garantia_disponible,
+            dias_restantes_garantia=dias_restantes_garantia,
+            motivos_retracto_permitidos=MOTIVOS_RETRACTO,
+            motivos_garantia_permitidos=MOTIVOS_GARANTIA,
+            empresa_dias_devolucion=empresa_dias_devolucion,
+            producto_dias_garantia=producto_dias_garantia,
+        ))
+
+    return PedidoDisponibilidadDevolucion(
+        pedido_id=pedido.id,
+        fecha_entrega=pedido.fecha_entrega,
+        items=items_disponibilidad
+    )
 
 
 @router.get("/pedido/{pedido_id}")

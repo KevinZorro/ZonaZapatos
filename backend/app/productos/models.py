@@ -66,6 +66,7 @@ class Producto(Base):
     talla = Column(String(10), nullable=True, index=True)
     color = Column(String(50), nullable=True)
     stock = Column(Integer, default=0, nullable=False)
+    dias_garantia = Column(Integer, default=90, nullable=False)
     creado_en = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

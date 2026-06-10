@@ -429,6 +429,92 @@
 .ep-textarea { resize: vertical; min-height: 80px; }
 .ep-select { appearance: none; cursor: pointer; }
 
+.ep-garantia-row {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--gray-light);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--white);
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  height: 46px;
+}
+
+.ep-garantia-row:focus-within {
+  border-color: var(--magenta);
+  box-shadow: 0 0 0 3px rgba(200,0,110,0.08);
+}
+
+.ep-garantia-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem 0 1rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--gray);
+  background: var(--white);
+  border-right: 1px solid var(--gray-light);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.ep-garantia-input {
+  width: 80px;
+  min-width: 0;
+  flex: none;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--white);
+  color: var(--dark);
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0 0.25rem;
+  -moz-appearance: textfield;
+  outline: none;
+}
+
+.ep-garantia-input::-webkit-inner-spin-button,
+.ep-garantia-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ep-garantia-divider {
+  width: 1px;
+  flex-shrink: 0;
+  background: var(--gray-light);
+}
+
+.ep-garantia-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.ep-garantia-select {
+  width: auto;
+  min-width: 120px;
+  flex-shrink: 0;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--white);
+  color: var(--dark);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0 2rem 0 1rem;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 10px 6px;
+}
+
 .ep-upload-box {
   border: 1.5px dashed rgba(200, 0, 110, 0.35);
   background: rgba(200, 0, 110, 0.03);
@@ -562,6 +648,13 @@
   padding: 0.6rem 0.875rem;
   border-radius: var(--r-md);
   border: 1px solid rgba(220,38,38,0.2);
+}
+
+.ep-field-hint {
+  font-size: 0.78rem;
+  color: var(--gray);
+  margin-top: 0.2rem;
+  line-height: 1.4;
 }
 
 .ep-delete-desc {

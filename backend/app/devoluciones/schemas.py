@@ -127,3 +127,30 @@ class DevolucionPendienteOut(BaseModel):
     total_productos: int
 
     model_config = {"from_attributes": True}
+
+
+# Schemas para disponibilidad de devolución por producto
+class ItemDisponibilidadDevolucion(BaseModel):
+    item_pedido_id: int
+    producto_id: int
+    producto_nombre: str
+    producto_imagen_url: str | None = None
+    dias_transcurridos: int | None = None
+    retracto_disponible: bool
+    dias_restantes_retracto: int
+    garantia_disponible: bool
+    dias_restantes_garantia: int
+    motivos_retracto_permitidos: List[str]
+    motivos_garantia_permitidos: List[str]
+    empresa_dias_devolucion: int
+    producto_dias_garantia: int
+
+    model_config = {"from_attributes": True}
+
+
+class PedidoDisponibilidadDevolucion(BaseModel):
+    pedido_id: int
+    fecha_entrega: datetime | None = None
+    items: List[ItemDisponibilidadDevolucion]
+
+    model_config = {"from_attributes": True}

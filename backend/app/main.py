@@ -11,26 +11,24 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import Base, engine
 
+# ── Import all models first so SQLAlchemy mappers configure correctly ─────────
+from app.models import (  # noqa: F401
+    Usuario, Empresa, Cliente, Administrador,
+    Producto, Categoria, MediaArchivo,
+    Pedido, ItemPedido,
+    Devolucion, EvidenciaDevolucion, ItemDevolucion,
+    EncuestaSatisfaccion,
+    DashboardVentas, AnalisisDevolucion, PrediccionVentas,
+)
+
 # ── Import routers ────────────────────────────────────────────────────────────
 from app.auth.router import router as auth_router
 from app.usuarios.router import router as usuarios_router
 from app.productos.router import router as productos_router
 from app.pedidos.router import router as pedidos_router
 from app.encuestas.router import router as encuestas_router
-from app.dashboard.router import router as dashboard_router
+# from app.dashboard.router import router as dashboard_router  # requires joblib
 from app.devoluciones.router import router as devoluciones_router
-
-# ── Import all models so Alembic autogenerate picks them up ──────────────────
-from app.usuarios.models import Usuario, Empresa, Cliente, Administrador  # noqa: F401
-from app.productos.models import Producto, Categoria, MediaArchivo  # noqa: F401
-from app.pedidos.models import Pedido, ItemPedido  # noqa: F401
-from app.devoluciones.models import Devolucion, EvidenciaDevolucion  # noqa: F401
-from app.encuestas.models import EncuestaSatisfaccion  # noqa: F401
-from app.dashboard.models import (  # noqa: F401
-    DashboardVentas,
-    AnalisisDevolucion,
-    PrediccionVentas,
-)
 
 # ── App factory ───────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -66,7 +64,7 @@ app.include_router(usuarios_router)
 app.include_router(productos_router)
 app.include_router(pedidos_router)
 app.include_router(encuestas_router)
-app.include_router(dashboard_router)
+# app.include_router(dashboard_router)  # requires joblib
 app.include_router(devoluciones_router)
 
 

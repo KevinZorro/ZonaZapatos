@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../../services/api'
 
 const MOTIVOS_DEVOLUCION = [
@@ -11,6 +11,9 @@ const MOTIVOS_DEVOLUCION = [
   "Producto defectuoso",
   "Otro"
 ]
+
+const MOTIVOS_RETRACTO = ["Talla/Color incorrecto", "No era lo esperado", "Otro"]
+const MOTIVOS_GARANTIA = ["Producto dañado", "Producto defectuoso", "Calidad inferior a la esperada", "Otro"]
 
 function formatPrice(price) {
   return new Intl.NumberFormat('es-CO', {
@@ -34,8 +37,8 @@ export default function SolicitudDevolucionPage() {
   const [previewImages, setPreviewImages] = useState([])
   const fileInputRef = useRef(null)  // Ref para limpiar el input file
 
-  // Ventana de devolución (RF política empresa)
-  const [ventana, setVentana] = useState(null)
+  // Disponibilidad de devolución por producto
+  const [disponibilidad, setDisponibilidad] = useState(null)
   
   // Verificar autenticación
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -86,9 +89,9 @@ export default function SolicitudDevolucionPage() {
       }
     }
     fetchPedido()
-    // Cargar ventana de devolución
-    api.get(`/devoluciones/pedido/${pedidoId}/ventana`)
-      .then(({ data }) => setVentana(data))
+    // Cargar disponibilidad de devolución por producto
+    api.get(`/devoluciones/pedido/${pedidoId}/disponibilidad`)
+      .then(({ data }) => setDisponibilidad(data))
       .catch(() => {})
   }, [pedidoId])
 
@@ -190,6 +193,36 @@ export default function SolicitudDevolucionPage() {
     if (itemsSinMotivo.length > 0) {
       setError(`Debes seleccionar un motivo para: ${itemsSinMotivo.map(i => i.producto_nombre).join(', ')}`)
       return
+    }
+
+    // Validar que si el motivo es "Otro", el comentario sea obligatorio
+    const itemsOtroSinComentario = itemsSeleccionados.filter(item => item.motivo === 'Otro' && !item.comentario?.trim())
+    if (itemsOtroSinComentario.length > 0) {
+      setError(`Debes explicar el motivo en el comentario para: ${itemsOtroSinComentario.map(i => i.producto_nombre).join(', ')}`)
+      return
+    }
+
+    // Validar disponibilidad por producto y motivo
+    if (disponibilidad && disponibilidad.items) {
+      const erroresDisponibilidad = []
+      for (const item of itemsSeleccionados) {
+        const disp = disponibilidad.items.find(d => d.item_pedido_id === item.item_pedido_id)
+        if (disp) {
+          const esRetracto = MOTIVOS_RETRACTO.includes(item.motivo)
+          const esGarantia = MOTIVOS_GARANTIA.includes(item.motivo)
+          
+          if (esRetracto && !disp.retracto_disponible) {
+            erroresDisponibilidad.push(`${item.producto_nombre}: motivo "${item.motivo}" no disponible (retracto expirado hace ${Math.abs(disp.dias_restantes_retracto)} días)`)
+          }
+          if (esGarantia && !disp.garantia_disponible) {
+            erroresDisponibilidad.push(`${item.producto_nombre}: motivo "${item.motivo}" no disponible (garantía expirada hace ${Math.abs(disp.dias_restantes_garantia)} días)`)
+          }
+        }
+      }
+      if (erroresDisponibilidad.length > 0) {
+        setError(erroresDisponibilidad.join('; '))
+        return
+      }
     }
 
     if (evidencias.length === 0) {
@@ -372,22 +405,23 @@ export default function SolicitudDevolucionPage() {
           </div>
         </motion.div>
 
-        {/* Banner ventana de devolución */}
-        {ventana && ventana.entregado && (
-          <div
-            className={`mb-6 px-4 py-3 rounded-xl border text-sm ${
-              ventana.vencida
-                ? 'bg-red-50 border-red-200 text-red-700'
-                : ventana.dias_restantes <= 3
-                  ? 'bg-amber-50 border-amber-200 text-amber-800'
-                  : 'bg-blue-50 border-blue-200 text-blue-700'
-            }`}
-          >
-            {ventana.vencida ? (
-              <>⛔ La ventana de devolución venció (la empresa permite hasta {ventana.dias_limite} días).</>
-            ) : (
-              <>🕐 Te quedan <strong>{ventana.dias_restantes} {ventana.dias_restantes === 1 ? 'día' : 'días'}</strong> para solicitar esta devolución (política: {ventana.dias_limite} días desde la entrega).</>
-            )}
+        {/* Banner disponibilidad de devolución */}
+        {disponibilidad && disponibilidad.items && disponibilidad.items.length > 0 && (
+          <div className="mb-6 px-4 py-3 rounded-xl border text-sm bg-blue-50 border-blue-200 text-blue-800">
+            <div className="font-medium mb-1">📋 Disponibilidad por producto:</div>
+            <div className="space-y-1 text-xs">
+              {disponibilidad.items.map((item) => (
+                <div key={item.item_pedido_id} className="flex gap-4 flex-wrap">
+                  <span className="font-medium">{item.producto_nombre}</span>
+                  <span className={item.retracto_disponible ? 'text-green-700' : 'text-red-700'}>
+                    🔄 Retracto: {item.retracto_disponible ? `${item.dias_restantes_retracto} días` : `Expirado`}
+                  </span>
+                  <span className={item.garantia_disponible ? 'text-green-700' : 'text-red-700'}>
+                    🛡️ Garantía: {item.garantia_disponible ? `${item.dias_restantes_garantia} días` : `Expirada`}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -494,21 +528,77 @@ export default function SolicitudDevolucionPage() {
                             <label className="block text-xs font-semibold text-gray-600 mb-1">
                               Motivo <span className="text-red-500">*</span>
                             </label>
-                            <select
-                              value={item.motivo}
-                              onChange={(e) => updateItemMotivo(item.item_pedido_id, e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                            >
-                              <option value="">Selecciona motivo</option>
-                              {MOTIVOS_DEVOLUCION.map(m => (
-                                <option key={m} value={m}>{m}</option>
-                              ))}
-                            </select>
+                              <select
+                                value={item.motivo}
+                                onChange={(e) => updateItemMotivo(item.item_pedido_id, e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                              >
+                                <option value="">Selecciona motivo</option>
+                                {(() => {
+                                  const disp = disponibilidad?.items?.find(d => d.item_pedido_id === item.item_pedido_id)
+                                  const retractoExpirado = disp && !disp.retracto_disponible
+                                  const garantiaExpirada = disp && !disp.garantia_disponible
+                                  const ambosExpirados = retractoExpirado && garantiaExpirada
+                                  return (
+                                    <>
+                                      <optgroup label="🔄 Retracto (arrepentimiento)">
+                                        {MOTIVOS_RETRACTO.map(m => {
+                                          const esOtro = m === "Otro"
+                                          const deshabilitado = disp && (esOtro ? ambosExpirados : retractoExpirado)
+                                          return (
+                                            <option key={`ret-${m}`} value={m} disabled={deshabilitado} style={deshabilitado ? { color: '#9ca3af' } : {}}>
+                                              {m} {deshabilitado ? ' ⛔' : ''}
+                                            </option>
+                                          )
+                                        })}
+                                      </optgroup>
+                                      <optgroup label="🛡️ Garantía (defecto/fábrica)">
+                                        {MOTIVOS_GARANTIA.map(m => {
+                                          const esOtro = m === "Otro"
+                                          const deshabilitado = disp && (esOtro ? ambosExpirados : garantiaExpirada)
+                                          return (
+                                            <option key={`gar-${m}`} value={m} disabled={deshabilitado} style={deshabilitado ? { color: '#9ca3af' } : {}}>
+                                              {m} {deshabilitado ? ' ⛔' : ''}
+                                            </option>
+                                          )
+                                        })}
+                                      </optgroup>
+                                    </>
+                                  )
+                                })()}
+                              </select>
+                            {disponibilidad?.items && (() => {
+                              const disp = disponibilidad.items.find(d => d.item_pedido_id === item.item_pedido_id)
+                              if (!disp) return null
+                              const retractoExpirado = !disp.retracto_disponible
+                              const garantiaExpirada = !disp.garantia_disponible
+                              return (
+                                <>
+                                  <p className="text-xs mt-1 flex gap-3">
+                                    <span className={disp.retracto_disponible ? 'text-green-600' : 'text-red-600'}>
+                                      🔄 Retracto: {disp.retracto_disponible ? `${disp.dias_restantes_retracto} días` : `Expirado`}
+                                    </span>
+                                    <span className={disp.garantia_disponible ? 'text-green-600' : 'text-red-600'}>
+                                      🛡️ Garantía: {disp.garantia_disponible ? `${disp.dias_restantes_garantia} días` : `Expirada`}
+                                    </span>
+                                  </p>
+                                  {(retractoExpirado || garantiaExpirada) && (
+                                    <p className="text-xs text-amber-600 mt-1">
+                                      ⚠️ {retractoExpirado && garantiaExpirada
+                                        ? 'Retracto y garantía expirados — solo aplican motivos generales.'
+                                        : retractoExpirado
+                                          ? 'Retracto expirado — los motivos de retracto no están disponibles.'
+                                          : 'Garantía expirada — los motivos de garantía no están disponibles.'}
+                                    </p>
+                                  )}
+                                </>
+                              )
+                            })()}
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-gray-600 mb-1">
-                            Comentario adicional (opcional)
+                            Comentario adicional {item.motivo === 'Otro' ? <span className="text-red-500">*</span> : '(opcional)'}
                           </label>
                           <textarea
                             value={item.comentario}
@@ -517,6 +607,9 @@ export default function SolicitudDevolucionPage() {
                             rows={2}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
                           />
+                          {item.motivo === 'Otro' && !item.comentario && (
+                            <p className="text-xs text-red-500 mt-1">Especifica el motivo en el comentario</p>
+                          )}
                         </div>
                       </div>
                     )}

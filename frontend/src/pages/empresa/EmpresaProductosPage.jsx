@@ -7,6 +7,29 @@ import './EmpresaProductosPage.css'
 const ESTADOS = ['activo', 'inactivo', 'agotado']
 const MEDIA_ACCEPT = 'image/*,.glb,.gltf'
 
+const GARANTIA_LIMITES = {
+  días:  { min: 30,  max: 1095, label: '30 días (1 mes) y 1095 días (3 años)' },
+  meses: { min: 1,   max: 36,   label: '1 y 36 meses' },
+  años:  { min: 1,   max: 3,    label: '1 y 3 años' },
+}
+
+function diasAUnidad(dias) {
+  if (dias % 365 === 0) return { valor: dias / 365, unidad: 'años' }
+  if (dias % 30 === 0) return { valor: dias / 30, unidad: 'meses' }
+  return { valor: dias, unidad: 'días' }
+}
+
+function calcularDias(valor, unidad) {
+  if (unidad === 'años') return Math.min(valor * 365, 1095)
+  if (unidad === 'meses') return Math.min(valor * 30, 1095)
+  return Math.min(valor, 1095)
+}
+
+function clampGarantia(valor, unidad) {
+  const lim = GARANTIA_LIMITES[unidad]
+  return Math.max(lim.min, Math.min(valor, lim.max))
+}
+
 const EMPTY_FORM = {
   nombre: '',
   descripcion: '',
@@ -15,6 +38,7 @@ const EMPTY_FORM = {
   color: '',
   stock: '',
   estado: 'activo',
+  dias_garantia: 90,
 }
 
 function estadoBadge(estado) {
@@ -58,12 +82,20 @@ function ProductoModal({ producto, onClose, onSaved }) {
     color: producto.color || '',
     stock: producto.stock ?? '',
     estado: producto.estado || 'activo',
+    dias_garantia: producto.dias_garantia ?? 90,
   } : EMPTY_FORM)
   const [files, setFiles] = useState([])
   const [filePreviews, setFilePreviews] = useState([])
   const [saving, setSaving] = useState(false)
   const [deletingMediaId, setDeletingMediaId] = useState(null)
   const [error, setError] = useState('')
+
+  const initGarantia = isEdit
+    ? diasAUnidad(producto.dias_garantia ?? 90)
+    : diasAUnidad(90)
+  const [garantiaValor, setGarantiaValor] = useState(initGarantia.valor)
+  const [garantiaUnidad, setGarantiaUnidad] = useState(initGarantia.unidad)
+  const [garantiaInput, setGarantiaInput] = useState(String(initGarantia.valor))
 
   const existingMedia = producto?.media || []
 
@@ -126,6 +158,7 @@ function ProductoModal({ producto, onClose, onSaved }) {
     try {
       const body = {
         ...form,
+        dias_garantia: calcularDias(garantiaValor, garantiaUnidad),
         precio: parseFloat(form.precio),
         stock: parseInt(form.stock) || 0,
       }
@@ -205,6 +238,53 @@ function ProductoModal({ producto, onClose, onSaved }) {
                 </select>
               </div>
             )}
+
+            <div className="ep-field">
+              <label className="ep-label">Garantía *</label>
+              <div className="ep-garantia-row">
+                <span className="ep-garantia-prefix">Cada</span>
+                <input
+                  className="ep-garantia-input"
+                  type="text"
+                  inputMode="numeric"
+                  value={garantiaInput}
+                  onChange={(e) => setGarantiaInput(e.target.value)}
+                  onBlur={() => {
+                    const num = parseInt(garantiaInput, 10)
+                    if (isNaN(num) || num < 1) {
+                      setGarantiaInput('1')
+                      setGarantiaValor(1)
+                      return
+                    }
+                    const clamped = clampGarantia(num, garantiaUnidad)
+                    setGarantiaInput(String(clamped))
+                    setGarantiaValor(clamped)
+                  }}
+                />
+                <div className="ep-garantia-spacer" />
+                <div className="ep-garantia-divider" />
+                <select
+                  className="ep-garantia-select"
+                  value={garantiaUnidad}
+                  onChange={(e) => {
+                    const nuevaUnidad = e.target.value
+                    const clamped = clampGarantia(garantiaValor, nuevaUnidad)
+                    setGarantiaValor(clamped)
+                    setGarantiaInput(String(clamped))
+                    setGarantiaUnidad(nuevaUnidad)
+                  }}
+                >
+                  <option value="días">días</option>
+                  <option value="meses">meses</option>
+                  <option value="años">años</option>
+                </select>
+              </div>
+              <p className="ep-field-hint">
+                Período de garantía legal para defectos de fábrica (no aplica para retracto).
+                Límite: {GARANTIA_LIMITES[garantiaUnidad].label}.
+                Equivale a <strong>{calcularDias(garantiaValor, garantiaUnidad)} días</strong>.
+              </p>
+            </div>
 
             <div className="ep-field ep-field--full">
               <label className="ep-label">Fotos y modelos 3D</label>

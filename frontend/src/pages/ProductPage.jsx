@@ -6,9 +6,23 @@ import { useCarrito } from '../context/CarritoContext'
 import ARViewer from '../components/ARViewer'
 import { getResenasProducto, getEncuestaPendientePorProducto, responderEncuesta, actualizarEncuesta, eliminarEncuesta } from '../services/encuestas'
 import { useAuth } from '../context/AuthContext'
+import Icon from '../assets/icons'
 import './ProductPage.css'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+function formatGarantia(dias) {
+  if (!dias) return ''
+  if (dias % 365 === 0) {
+    const años = dias / 365
+    return `${años} ${años === 1 ? 'año' : 'años'} (${dias} días)`
+  }
+  if (dias % 30 === 0) {
+    const meses = dias / 30
+    return `${meses} ${meses === 1 ? 'mes' : 'meses'} (${dias} días)`
+  }
+  return `${dias} días`
+}
 
 const ESTADOS = {
   activo: { label: 'Listo para entrega', icon: '✅', color: '#16A34A', bg: '#F0FDF4' },
@@ -355,6 +369,8 @@ export default function ProductPage() {
   const [editComment, setEditComment] = useState('')
   // Estado para mostrar formulario de reseña desde el banner
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  // Estado para acordeón "Más información"
+  const [masInfoAbierto, setMasInfoAbierto] = useState(false)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -590,6 +606,50 @@ export default function ProductPage() {
           <div className="pp-stock-info">
             <span className="pp-stock-dot" style={{ background: agotado ? 'var(--error)' : 'var(--success)' }} />
             {agotado ? 'Sin stock actualmente' : `${product.stock} unidades disponibles`}
+          </div>
+
+          {/* Sección colapsable "Más información" - usa estado manual para control total */}
+          <div className="pp-mas-info">
+            <button
+              type="button"
+              className="pp-mas-info__summary"
+              onClick={() => setMasInfoAbierto(!masInfoAbierto)}
+              aria-expanded={masInfoAbierto}
+              aria-controls="mas-info-content"
+            >
+              <span>Más información</span>
+              <Icon name={masInfoAbierto ? "chevron-up" : "chevron-down"} size={16} />
+            </button>
+            <div
+              id="mas-info-content"
+              className="pp-mas-info__content"
+              style={{ display: masInfoAbierto ? 'flex' : 'none' }}
+              aria-hidden={!masInfoAbierto}
+            >
+              {product.dias_garantia && (
+                <div className="pp-mas-info__row">
+                  <span className="pp-mas-info__label">🛡️ Garantía legal</span>
+                  <span className="pp-mas-info__value">
+                    {formatGarantia(product.dias_garantia)} — Cubre defectos de fabricación (pegamento, costuras, materiales).
+                    No cubre desgaste normal ni daños por mal uso.
+                  </span>
+                </div>
+              )}
+              {product.empresa_nombre && (
+                <div className="pp-mas-info__row">
+                  <span className="pp-mas-info__label">Fabricante</span>
+                  <span className="pp-mas-info__value">{product.empresa_nombre}</span>
+                </div>
+              )}
+              {(product.categorias?.length ?? 0) > 0 && product.categorias.some(c => c.nombre) && (
+                <div className="pp-mas-info__row">
+                  <span className="pp-mas-info__label">Categoría</span>
+                  <span className="pp-mas-info__value">
+                    {product.categorias.filter(c => c.nombre).map(c => c.nombre).join(', ')}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Banner: Puedes dejar reseña */}

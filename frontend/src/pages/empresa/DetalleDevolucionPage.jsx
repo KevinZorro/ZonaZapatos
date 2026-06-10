@@ -331,11 +331,11 @@ export default function DetalleDevolucionPage() {
                     className="block group"
                     title="Haz clic para ver en tamaño completo"
                   >
-                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all bg-gray-100">
+                    <div className="relative rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all bg-gray-100 flex items-center justify-center" style={{ minHeight: '160px', maxHeight: '300px' }}>
                       <img
                         src={evidencia.cloudinary_url}
                         alt={`Evidencia ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         loading="eager"
                       />
                     </div>

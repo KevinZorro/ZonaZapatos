@@ -784,15 +784,54 @@ export default function PedidoDetallePage() {
             className="bg-white border border-gray-200 rounded-2xl overflow-hidden mt-4"
           >
             <div className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
-                    ¿Tienes algún problema con tu pedido?
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Puedes solicitar una devolución si el producto no cumple con tus expectativas
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">
+                  ¿Tienes algún problema con tu pedido?
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Puedes solicitar una devolución si el producto no cumple con tus expectativas
+                </p>
+              </div>
+
+              {/* Días restantes por producto */}
+              {pedido.items && pedido.items.length > 0 && pedido.items.map((item) => {
+                let diasTranscurridos = null
+                let diasRestantesRetracto = null
+                let diasRestantesGarantia = null
+                let retractoDisponible = true
+                let garantiaDisponible = true
+                let diasRetracto = item.producto?.empresa?.dias_devolucion || 15
+                let diasGarantia = item.producto?.dias_garantia || 365
+
+                if (pedido.fecha_entrega) {
+                  const fechaEntregaDate = new Date(pedido.fecha_entrega)
+                  const ahora = new Date()
+                  diasTranscurridos = Math.floor((ahora - fechaEntregaDate) / (1000 * 60 * 60 * 24))
+                  diasRestantesRetracto = Math.max(diasRetracto - diasTranscurridos, 0)
+                  diasRestantesGarantia = Math.max(diasGarantia - diasTranscurridos, 0)
+                  retractoDisponible = diasTranscurridos <= diasRetracto
+                  garantiaDisponible = diasTranscurridos <= diasGarantia
+                } else {
+                  diasRestantesRetracto = diasRetracto
+                  diasRestantesGarantia = diasGarantia
+                }
+
+                return (
+                  <div key={item.id} className="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
+                    <p className="font-medium text-gray-800">{item.producto?.nombre || `Producto #${item.producto_id}`}</p>
+                    <div className="flex flex-wrap gap-4 mt-1">
+                      <span className={retractoDisponible ? 'text-green-600' : 'text-red-600'}>
+                        🔄 Retracto: {retractoDisponible ? `${diasRestantesRetracto} días restantes` : `Expirado (hace ${diasTranscurridos - diasRetracto} días)`}
+                      </span>
+                      <span className={garantiaDisponible ? 'text-green-600' : 'text-red-600'}>
+                        🛡️ Garantía: {garantiaDisponible ? `${diasRestantesGarantia} días restantes` : `Expirada (hace ${diasTranscurridos - diasGarantia} días)`}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+              
+              <div className="flex justify-end mt-4">
                 <Link
                   to={`/devoluciones/solicitar/${pedido.id}`}
                   className="px-6 py-2.5 bg-red-600 text-white text-sm font-bold rounded-full hover:bg-red-700 transition-colors duration-200"
