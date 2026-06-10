@@ -242,7 +242,7 @@ function ProductoModal({ producto, onClose, onSaved }) {
             <div className="ep-field">
               <label className="ep-label">Garantía *</label>
               <div className="ep-garantia-row">
-                <span className="ep-garantia-prefix">Cada</span>
+                <span className="ep-garantia-prefix">Por</span>
                 <input
                   className="ep-garantia-input"
                   type="text"
